@@ -56,10 +56,15 @@ function TreeCanvasInner() {
 
       const depth = calculateDepth(nodeId, goals);
 
+      // Use saved position if it exists, otherwise use calculated position
+      const nodePosition = goal.position?.x !== undefined && goal.position?.y !== undefined
+        ? goal.position
+        : { x, y };
+
       nodes.push({
         id: String(nodeId),
         type: 'goalNode',
-        position: { x, y },
+        position: nodePosition,
         data: {
           id: nodeId,
           name: goal.name,
