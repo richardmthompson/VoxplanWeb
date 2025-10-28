@@ -68,6 +68,16 @@ export default function Home() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't process shortcuts if an input, textarea, or contenteditable element is focused
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
       if (e.key === '?') {
         e.preventDefault();
         setShowHelp(true);
@@ -131,7 +141,15 @@ export default function Home() {
         {/* Floating Command Window */}
         <CommandWindow 
           isOpen={commandWindowOpen} 
-          onToggle={() => setCommandWindowOpen(!commandWindowOpen)} 
+          onToggle={() => {
+            const newState = !commandWindowOpen;
+            setCommandWindowOpen(newState);
+            if (newState) {
+              setMode('command');
+            } else {
+              setMode('navigate');
+            }
+          }} 
         />
         
         {/* Floating Attribute Window */}
