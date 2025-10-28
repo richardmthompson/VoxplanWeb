@@ -1,124 +1,147 @@
 import { useEffect, useState } from 'react';
+import { useUIStore } from '@/stores/uiStore';
+import { useTreeStore } from '@/stores/treeStore';
 import Header from '@/components/layout/Header';
 import TreeCanvas from '@/components/tree/TreeCanvas';
 import CommandWindow from '@/components/windows/CommandWindow';
 import AttributeWindow from '@/components/windows/AttributeWindow';
-import { useTreeStore } from '@/stores/treeStore';
-import { useUIStore } from '@/stores/uiStore';
+import HelpDialog from '@/components/dialogs/HelpDialog';
 
 export default function Home() {
-  const addGoal = useTreeStore((state) => state.addGoal);
-  const updateGoal = useTreeStore((state) => state.updateGoal);
-  const deleteGoal = useTreeStore((state) => state.deleteGoal);
-  const activeGoalId = useTreeStore((state) => state.activeGoalId);
-  const goals = useTreeStore((state) => state.goals);
-  const navigateUp = useTreeStore((state) => state.navigateUp);
-  const navigateDown = useTreeStore((state) => state.navigateDown);
-  const navigateLeft = useTreeStore((state) => state.navigateLeft);
-  const navigateRight = useTreeStore((state) => state.navigateRight);
+  const [showHelp, setShowHelp] = useState(false);
+  const [commandWindowOpen, setCommandWindowOpen] = useState(false);
+  const [attributeWindowOpen, setAttributeWindowOpen] = useState(false);
+  
   const mode = useUIStore((state) => state.mode);
   const setMode = useUIStore((state) => state.setMode);
-  const [showHelp, setShowHelp] = useState(false);
+  const activeGoalId = useTreeStore((state) => state.activeGoalId);
+  const goals = useTreeStore((state) => state.goals);
+  const addGoal = useTreeStore((state) => state.addGoal);
+  const deleteGoal = useTreeStore((state) => state.deleteGoal);
+  const setActiveGoal = useTreeStore((state) => state.setActiveGoal);
 
-  useEffect(() => {
-    if (goals.size === 0) {
-      addGoal('My Life Goals', 'Top-level goals for my life', null);
+  const navigateUp = () => {
+    if (activeGoalId === null) return;
+    const activeGoal = goals.get(activeGoalId);
+    if (activeGoal?.parentId !== null && activeGoal?.parentId !== undefined) {
+      setActiveGoal(activeGoal.parentId);
     }
-  }, [goals.size, addGoal]);
+  };
+
+  const navigateDown = () => {
+    if (activeGoalId === null) return;
+    const children = Array.from(goals.values()).filter(g => g.parentId === activeGoalId);
+    if (children.length > 0) {
+      setActiveGoal(children[0].id);
+    }
+  };
+
+  const navigateLeft = () => {
+    if (activeGoalId === null) return;
+    const activeGoal = goals.get(activeGoalId);
+    if (activeGoal?.parentId === null || activeGoal?.parentId === undefined) return;
+    
+    const siblings = Array.from(goals.values())
+      .filter(g => g.parentId === activeGoal.parentId)
+      .sort((a, b) => a.id - b.id);
+    
+    const currentIndex = siblings.findIndex(g => g.id === activeGoalId);
+    if (currentIndex > 0) {
+      setActiveGoal(siblings[currentIndex - 1].id);
+    }
+  };
+
+  const navigateRight = () => {
+    if (activeGoalId === null) return;
+    const activeGoal = goals.get(activeGoalId);
+    if (activeGoal?.parentId === null || activeGoal?.parentId === undefined) return;
+    
+    const siblings = Array.from(goals.values())
+      .filter(g => g.parentId === activeGoal.parentId)
+      .sort((a, b) => a.id - b.id);
+    
+    const currentIndex = siblings.findIndex(g => g.id === activeGoalId);
+    if (currentIndex < siblings.length - 1) {
+      setActiveGoal(siblings[currentIndex + 1].id);
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      // Global shortcuts (work in any mode)
-      if (e.key === '?' && !e.shiftKey) {
+      if (e.key === '?') {
         e.preventDefault();
-        setShowHelp(prev => !prev);
+        setShowHelp(true);
         return;
       }
 
-      if (e.key === '/' && e.shiftKey) {
-        e.preventDefault();
-        setShowHelp(prev => !prev);
-        return;
-      }
-
-      if (mode !== 'navigate') return;
-
-      // Navigate mode shortcuts
-      switch (e.key) {
-        case 'ArrowUp':
-        case 'k':
+      if (mode === 'navigate') {
+        if (e.key === 'c') {
           e.preventDefault();
-          navigateUp();
-          break;
-        case 'ArrowDown':
-        case 'j':
-          e.preventDefault();
-          navigateDown();
-          break;
-        case 'ArrowLeft':
-        case 'h':
+          setMode('command');
+          setCommandWindowOpen(true);
+        } else if (e.key === 'h') {
           e.preventDefault();
           navigateLeft();
-          break;
-        case 'ArrowRight':
-        case 'l':
+        } else if (e.key === 'j') {
+          e.preventDefault();
+          navigateDown();
+        } else if (e.key === 'k') {
+          e.preventDefault();
+          navigateUp();
+        } else if (e.key === 'l') {
           e.preventDefault();
           navigateRight();
-          break;
-        case 'n':
+        } else if (e.key === 'n') {
           e.preventDefault();
           if (activeGoalId !== null) {
             const activeGoal = goals.get(activeGoalId);
-            if (activeGoal && activeGoal.parentId !== null) {
-              addGoal('New Sibling', '', activeGoal.parentId);
+            if (activeGoal?.parentId !== null) {
+              addGoal('New Sibling', '', activeGoal?.parentId ?? null);
             }
           }
-          break;
-        case 's':
+        } else if (e.key === 's') {
           e.preventDefault();
           if (activeGoalId !== null) {
             addGoal('New Child', '', activeGoalId);
           }
-          break;
-        case 'd':
+        } else if (e.key === 'd') {
           e.preventDefault();
           if (activeGoalId !== null) {
             deleteGoal(activeGoalId);
           }
-          break;
-        case 'c':
+        } else if (e.key === 'a') {
           e.preventDefault();
-          setMode('command');
-          break;
+          setAttributeWindowOpen(!attributeWindowOpen);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, navigateUp, navigateDown, navigateLeft, navigateRight, addGoal, deleteGoal, activeGoalId, goals, setMode]);
+  }, [mode, navigateUp, navigateDown, navigateLeft, navigateRight, addGoal, deleteGoal, activeGoalId, goals, setMode, attributeWindowOpen]);
 
   return (
     <div className="h-screen flex flex-col">
       <Header showHelp={showHelp} setShowHelp={setShowHelp} />
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-80 flex flex-col gap-4 p-4 border-r bg-background">
-          <div className="h-80">
-            <CommandWindow />
-          </div>
-        </div>
+      
+      {/* Full-screen TreeCanvas as background */}
+      <div className="flex-1 relative">
+        <TreeCanvas />
         
-        <div className="flex-1 bg-background">
-          <TreeCanvas />
-        </div>
+        {/* Floating Command Window */}
+        <CommandWindow 
+          isOpen={commandWindowOpen} 
+          onToggle={() => setCommandWindowOpen(!commandWindowOpen)} 
+        />
         
-        <div className="w-96 p-4 border-l bg-background overflow-auto">
-          <AttributeWindow />
-        </div>
+        {/* Floating Attribute Window */}
+        <AttributeWindow 
+          isOpen={attributeWindowOpen} 
+          onToggle={() => setAttributeWindowOpen(!attributeWindowOpen)} 
+        />
       </div>
+
+      <HelpDialog open={showHelp} onOpenChange={setShowHelp} />
     </div>
   );
 }
