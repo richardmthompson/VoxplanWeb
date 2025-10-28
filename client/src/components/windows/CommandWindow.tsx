@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState, useRef, useEffect } from 'react';
 import { useTreeStore } from '@/stores/treeStore';
 import { useUIStore } from '@/stores/uiStore';
-import { Send } from 'lucide-react';
+import { Terminal } from 'lucide-react';
 
 export default function CommandWindow() {
   const [command, setCommand] = useState('');
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<string[]>([
+    'VoxPlan Terminal v1.0',
+    'Type "help" for available commands',
+    ''
+  ]);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const historyEndRef = useRef<HTMLDivElement>(null);
   const mode = useUIStore((state) => state.mode);
   const activeGoalId = useTreeStore((state) => state.activeGoalId);
   const addGoal = useTreeStore((state) => state.addGoal);
@@ -17,124 +19,146 @@ export default function CommandWindow() {
   const deleteGoal = useTreeStore((state) => state.deleteGoal);
   const getGoal = useTreeStore((state) => state.getGoal);
 
+  useEffect(() => {
+    historyEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [history]);
+
   const handleSubmit = () => {
-    if (!command.trim()) return;
+    if (!command.trim()) {
+      setHistory((prev) => [...prev, 'voxplan > ', '']);
+      setCommand('');
+      return;
+    }
 
     const cmd = command.trim().toLowerCase();
-    setHistory((prev) => [...prev, `> ${command}`]);
+    setHistory((prev) => [...prev, `voxplan > ${command}`]);
 
     try {
-      if (cmd.startsWith('create root ') || cmd.startsWith('root ')) {
+      if (cmd === 'help') {
+        setHistory((prev) => [...prev, 
+          'Available commands:',
+          '  root [name]     - Create root goal',
+          '  child [name]    - Add child to active goal',
+          '  sibling [name]  - Add sibling to active goal',
+          '  edit [name]     - Rename active goal',
+          '  delete          - Delete active goal',
+          '  clear           - Clear terminal',
+          ''
+        ]);
+      } else if (cmd.startsWith('create root ') || cmd.startsWith('root ')) {
         const name = command.substring(cmd.indexOf(' ', cmd.indexOf(' ') + 1) + 1).trim();
         addGoal(name, '', null);
-        setHistory((prev) => [...prev, `✓ Created root goal: ${name}`]);
+        setHistory((prev) => [...prev, `✓ Created root goal: ${name}`, '']);
       } else if (cmd.startsWith('create child ') || cmd.startsWith('child ')) {
         if (activeGoalId === null) {
-          setHistory((prev) => [...prev, '✗ No active goal selected']);
+          setHistory((prev) => [...prev, '✗ No active goal selected', '']);
         } else {
           const name = command.substring(cmd.indexOf(' ', cmd.indexOf(' ') + 1) + 1).trim();
           addGoal(name, '', activeGoalId);
-          setHistory((prev) => [...prev, `✓ Created child goal: ${name}`]);
+          setHistory((prev) => [...prev, `✓ Created child goal: ${name}`, '']);
         }
       } else if (cmd.startsWith('create sibling ') || cmd.startsWith('sibling ')) {
         if (activeGoalId === null) {
-          setHistory((prev) => [...prev, '✗ No active goal selected']);
+          setHistory((prev) => [...prev, '✗ No active goal selected', '']);
         } else {
           const activeGoal = getGoal(activeGoalId);
           if (activeGoal?.parentId === null) {
-            setHistory((prev) => [...prev, '✗ Cannot create sibling of root']);
+            setHistory((prev) => [...prev, '✗ Cannot create sibling of root', '']);
           } else {
             const name = command.substring(cmd.indexOf(' ', cmd.indexOf(' ') + 1) + 1).trim();
             addGoal(name, '', activeGoal?.parentId ?? null);
-            setHistory((prev) => [...prev, `✓ Created sibling goal: ${name}`]);
+            setHistory((prev) => [...prev, `✓ Created sibling goal: ${name}`, '']);
           }
         }
       } else if (cmd.startsWith('edit ')) {
         if (activeGoalId === null) {
-          setHistory((prev) => [...prev, '✗ No active goal selected']);
+          setHistory((prev) => [...prev, '✗ No active goal selected', '']);
         } else {
           const name = command.substring(5).trim();
           updateGoal(activeGoalId, { name });
-          setHistory((prev) => [...prev, `✓ Updated goal name: ${name}`]);
+          setHistory((prev) => [...prev, `✓ Updated goal name: ${name}`, '']);
         }
       } else if (cmd === 'delete') {
         if (activeGoalId === null) {
-          setHistory((prev) => [...prev, '✗ No active goal selected']);
+          setHistory((prev) => [...prev, '✗ No active goal selected', '']);
         } else {
           deleteGoal(activeGoalId);
-          setHistory((prev) => [...prev, `✓ Deleted goal`]);
+          setHistory((prev) => [...prev, `✓ Deleted goal`, '']);
         }
       } else if (cmd === 'clear') {
-        setHistory([]);
-        setHistory((prev) => [...prev, '✓ History cleared']);
+        setHistory(['']);
       } else {
-        setHistory((prev) => [...prev, '✗ Unknown command']);
+        setHistory((prev) => [...prev, `✗ Unknown command: ${cmd}`, '']);
       }
     } catch (error) {
-      setHistory((prev) => [...prev, `✗ Error: ${error}`]);
+      setHistory((prev) => [...prev, `✗ Error: ${error}`, '']);
     }
 
     setCommand('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter') {
       e.preventDefault();
       handleSubmit();
     }
   };
 
   return (
-    <Card className="h-full flex flex-col" data-testid="command-window">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="text-lg font-semibold">Commands</CardTitle>
-        <Badge variant="secondary" className="font-mono text-xs" data-testid="mode-indicator">
-          {mode.toUpperCase()}
-        </Badge>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col gap-4">
-        <div className="flex-1 flex flex-col gap-2">
-          <Textarea
-            placeholder="Type a command...&#10;Examples:&#10;- create root My Goal&#10;- create child Sub Goal&#10;- edit New Name&#10;- delete"
+    <div 
+      className="h-full flex flex-col bg-black/95 rounded-lg border border-green-500/30 overflow-hidden"
+      data-testid="command-window"
+      onClick={() => inputRef.current?.focus()}
+    >
+      {/* Terminal Header */}
+      <div className="flex items-center gap-2 px-3 py-2 bg-green-500/10 border-b border-green-500/30">
+        <Terminal className="w-4 h-4 text-green-500" />
+        <span className="text-xs font-mono text-green-500">voxplan terminal</span>
+        <div className="ml-auto flex gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
+          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50" />
+          <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
+        </div>
+      </div>
+
+      {/* Terminal Body */}
+      <div className="flex-1 overflow-y-auto p-3 font-mono text-sm text-green-400 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-green-500/30">
+        {history.map((line, idx) => (
+          <div
+            key={idx}
+            className={
+              line.startsWith('✓')
+                ? 'text-green-400'
+                : line.startsWith('✗')
+                ? 'text-red-400'
+                : line.startsWith('voxplan >')
+                ? 'text-green-500'
+                : 'text-green-400/80'
+            }
+          >
+            {line || '\u00A0'}
+          </div>
+        ))}
+        
+        {/* Current Input Line */}
+        <div className="flex items-center gap-2">
+          <span className="text-green-500">voxplan &gt;</span>
+          <input
+            ref={inputRef}
+            type="text"
             value={command}
             onChange={(e) => setCommand(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="font-mono text-sm min-h-32 resize-none"
+            className="flex-1 bg-transparent border-none outline-none text-green-400 font-mono caret-green-400"
+            autoFocus
             data-testid="input-command"
+            style={{
+              caretShape: 'block'
+            }}
           />
-          <Button
-            onClick={handleSubmit}
-            className="w-full gap-2"
-            data-testid="button-submit-command"
-          >
-            <Send className="w-4 h-4" />
-            Execute
-          </Button>
         </div>
-
-        <div className="flex-1 max-h-64 overflow-y-auto border rounded-md p-3 bg-muted/50">
-          <div className="space-y-1 font-mono text-xs" data-testid="command-history">
-            {history.length === 0 ? (
-              <p className="text-muted-foreground">Command history will appear here...</p>
-            ) : (
-              history.map((line, idx) => (
-                <div
-                  key={idx}
-                  className={
-                    line.startsWith('✓')
-                      ? 'text-green-600 dark:text-green-400'
-                      : line.startsWith('✗')
-                      ? 'text-destructive'
-                      : 'text-foreground'
-                  }
-                >
-                  {line}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        <div ref={historyEndRef} />
+      </div>
+    </div>
   );
 }

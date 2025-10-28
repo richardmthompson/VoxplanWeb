@@ -105,8 +105,10 @@ export default function Home() {
     <div className="h-screen flex flex-col">
       <Header showHelp={showHelp} setShowHelp={setShowHelp} />
       <div className="flex-1 flex overflow-hidden">
-        <div className="w-80 p-4 border-r bg-background overflow-auto">
-          <CommandWindow />
+        <div className="w-80 flex flex-col gap-4 p-4 border-r bg-background">
+          <div className="h-80">
+            <CommandWindow />
+          </div>
         </div>
         
         <div className="flex-1 bg-background">
