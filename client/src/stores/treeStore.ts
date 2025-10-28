@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { immer } from 'zustand/middleware/immer';
 
 export interface Goal {
   id: number;
@@ -32,8 +31,7 @@ interface TreeState {
   loadTree: (root: Goal, allGoals: Goal[], nextId: number) => void;
 }
 
-export const useTreeStore = create<TreeState>()(
-  immer((set, get) => ({
+export const useTreeStore = create<TreeState>()((set, get) => ({
     goals: new Map(),
     nextId: 0,
     activeGoalId: null,
@@ -56,26 +54,27 @@ export const useTreeStore = create<TreeState>()(
         position: { x: 0, y: 0 }
       };
 
-      set(state => {
-        state.goals.set(id, newGoal);
-        state.nextId = id + 1;
-        state.activeGoalId = id;
-        
-        if (parentId === null) {
-          state.rootId = id;
-        }
+      const newGoals = new Map(state.goals);
+      newGoals.set(id, newGoal);
+
+      set({
+        goals: newGoals,
+        nextId: id + 1,
+        activeGoalId: id,
+        rootId: parentId === null ? id : state.rootId,
       });
 
       return id;
     },
 
     updateGoal: (id: number, updates: Partial<Goal>) => {
-      set(state => {
-        const goal = state.goals.get(id);
-        if (goal) {
-          state.goals.set(id, { ...goal, ...updates });
-        }
-      });
+      const state = get();
+      const goal = state.goals.get(id);
+      if (goal) {
+        const newGoals = new Map(state.goals);
+        newGoals.set(id, { ...goal, ...updates });
+        set({ goals: newGoals });
+      }
     },
 
     deleteGoal: (id: number) => {
@@ -101,16 +100,13 @@ export const useTreeStore = create<TreeState>()(
         newActiveId = parent?.id ?? null;
       }
 
-      set(state => {
-        state.goals.delete(id);
-        state.activeGoalId = newActiveId;
-      });
+      const newGoals = new Map(state.goals);
+      newGoals.delete(id);
+      set({ goals: newGoals, activeGoalId: newActiveId });
     },
 
     setActiveGoal: (id: number | null) => {
-      set(state => {
-        state.activeGoalId = id;
-      });
+      set({ activeGoalId: id });
     },
 
     getGoal: (id: number) => {
@@ -191,12 +187,11 @@ export const useTreeStore = create<TreeState>()(
     },
 
     loadTree: (root: Goal, allGoals: Goal[], nextId: number) => {
-      set(state => {
-        state.goals = new Map(allGoals.map(g => [g.id, g]));
-        state.nextId = nextId;
-        state.rootId = root.id;
-        state.activeGoalId = root.id;
+      set({
+        goals: new Map(allGoals.map(g => [g.id, g])),
+        nextId,
+        rootId: root.id,
+        activeGoalId: root.id,
       });
     }
-  }))
-);
+  }));
