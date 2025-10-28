@@ -28,6 +28,7 @@ export default function Home() {
         return;
       }
 
+      // Global shortcuts (work in any mode)
       if (e.key === '?' && !e.shiftKey) {
         e.preventDefault();
         setShowHelp(prev => !prev);
@@ -42,20 +43,25 @@ export default function Home() {
 
       if (mode !== 'navigate') return;
 
+      // Navigate mode shortcuts
       switch (e.key) {
         case 'ArrowUp':
+        case 'k':
           e.preventDefault();
           navigateUp();
           break;
         case 'ArrowDown':
+        case 'j':
           e.preventDefault();
           navigateDown();
           break;
         case 'ArrowLeft':
+        case 'h':
           e.preventDefault();
           navigateLeft();
           break;
         case 'ArrowRight':
+        case 'l':
           e.preventDefault();
           navigateRight();
           break;

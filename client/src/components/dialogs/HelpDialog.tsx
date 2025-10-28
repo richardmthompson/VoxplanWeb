@@ -157,19 +157,19 @@ export default function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
                 <h4 className="font-medium mb-2 text-sm text-muted-foreground">NAVIGATE MODE SHORTCUTS</h4>
                 <div className="space-y-2">
                   <ShortcutRow
-                    keys={['↑']}
+                    keys={['↑', 'k']}
                     description="Navigate to parent goal"
                   />
                   <ShortcutRow
-                    keys={['↓']}
+                    keys={['↓', 'j']}
                     description="Navigate to first child goal"
                   />
                   <ShortcutRow
-                    keys={['←']}
+                    keys={['←', 'h']}
                     description="Navigate to left sibling"
                   />
                   <ShortcutRow
-                    keys={['→']}
+                    keys={['→', 'l']}
                     description="Navigate to right sibling"
                   />
                 </div>
@@ -185,6 +185,10 @@ export default function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
                   <ShortcutRow
                     keys={['Enter']}
                     description="Execute command (in command window)"
+                  />
+                  <ShortcutRow
+                    keys={['Esc']}
+                    description="Exit input field / Return to navigation"
                   />
                 </div>
               </div>
