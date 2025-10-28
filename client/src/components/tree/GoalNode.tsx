@@ -44,7 +44,7 @@ function GoalNode({ data }: NodeProps<GoalNodeData>) {
         
         <div
           className={`rounded-full flex items-center justify-center transition-all duration-300 ${
-            data.isActive ? 'animate-pulse scale-110' : ''
+            data.isActive ? 'scale-110' : ''
           }`}
           style={{
             width: diameter,
