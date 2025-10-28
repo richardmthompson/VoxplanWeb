@@ -154,7 +154,7 @@ export default function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
               </div>
 
               <div>
-                <h4 className="font-medium mb-2 text-sm text-muted-foreground">NAVIGATE MODE SHORTCUTS</h4>
+                <h4 className="font-medium mb-2 text-sm text-muted-foreground">NAVIGATE MODE - NAVIGATION</h4>
                 <div className="space-y-2">
                   <ShortcutRow
                     keys={['↑', 'k']}
@@ -171,6 +171,28 @@ export default function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
                   <ShortcutRow
                     keys={['→', 'l']}
                     description="Navigate to right sibling"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2 text-sm text-muted-foreground">NAVIGATE MODE - ACTIONS</h4>
+                <div className="space-y-2">
+                  <ShortcutRow
+                    keys={['n']}
+                    description="Create new sibling goal"
+                  />
+                  <ShortcutRow
+                    keys={['s']}
+                    description="Create new child (sub) goal"
+                  />
+                  <ShortcutRow
+                    keys={['d']}
+                    description="Delete active goal"
+                  />
+                  <ShortcutRow
+                    keys={['c']}
+                    description="Switch to Command Mode"
                   />
                 </div>
               </div>
@@ -200,21 +222,22 @@ export default function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
           <section>
             <h3 className="text-lg font-semibold mb-3">Getting Started</h3>
             <ol className="space-y-2 text-sm list-decimal list-inside">
-              <li>Start in <strong>Command Mode</strong> and type commands like <code className="bg-muted px-1 rounded">child My First Goal</code></li>
-              <li>Switch to <strong>Navigate Mode</strong> to explore your goal tree with arrow keys</li>
-              <li>Click on any goal node to select it (works in any mode)</li>
-              <li>Use the <strong>Attribute Panel</strong> on the right to edit name and details, then click Save</li>
-              <li>Use the center button (⊕) in the tree canvas to focus on the active goal</li>
+              <li>Click <strong>Navigate Mode</strong> in the header (or press <code className="bg-muted px-1 rounded">c</code> to switch to Command Mode)</li>
+              <li>Use arrow keys or <code className="bg-muted px-1 rounded">h/j/k/l</code> to navigate the tree</li>
+              <li>Press <code className="bg-muted px-1 rounded">s</code> to create a child goal or <code className="bg-muted px-1 rounded">n</code> for a sibling</li>
+              <li>Press <code className="bg-muted px-1 rounded">c</code> to switch to Command Mode for text-based commands</li>
+              <li>Use the <strong>Attribute Panel</strong> on the right to edit detailed information</li>
             </ol>
           </section>
           
           <section>
             <h3 className="text-lg font-semibold mb-3">Tips</h3>
             <ul className="space-y-2 text-sm list-disc list-inside">
-              <li>Commands can use shortcuts: <code className="bg-muted px-1 rounded">child</code> instead of <code className="bg-muted px-1 rounded">create child</code></li>
+              <li><strong>Navigate Mode</strong> is fastest for quick goal creation using keyboard shortcuts</li>
+              <li><strong>Command Mode</strong> is better for complex operations with descriptive names</li>
               <li>The active goal is shown in red on the tree and in the header breadcrumb</li>
-              <li>You can edit goals via commands OR the attribute panel</li>
-              <li>Pan and zoom the tree canvas to explore large goal hierarchies</li>
+              <li>Click any goal node to instantly select it (works in any mode)</li>
+              <li>Use Vim keys (<code className="bg-muted px-1 rounded">h/j/k/l</code>) for efficient navigation without leaving home row</li>
             </ul>
           </section>
         </div>

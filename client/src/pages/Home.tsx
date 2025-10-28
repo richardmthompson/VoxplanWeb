@@ -8,12 +8,16 @@ import { useUIStore } from '@/stores/uiStore';
 
 export default function Home() {
   const addGoal = useTreeStore((state) => state.addGoal);
+  const updateGoal = useTreeStore((state) => state.updateGoal);
+  const deleteGoal = useTreeStore((state) => state.deleteGoal);
+  const activeGoalId = useTreeStore((state) => state.activeGoalId);
   const goals = useTreeStore((state) => state.goals);
   const navigateUp = useTreeStore((state) => state.navigateUp);
   const navigateDown = useTreeStore((state) => state.navigateDown);
   const navigateLeft = useTreeStore((state) => state.navigateLeft);
   const navigateRight = useTreeStore((state) => state.navigateRight);
   const mode = useUIStore((state) => state.mode);
+  const setMode = useUIStore((state) => state.setMode);
   const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
@@ -65,12 +69,37 @@ export default function Home() {
           e.preventDefault();
           navigateRight();
           break;
+        case 'n':
+          e.preventDefault();
+          if (activeGoalId !== null) {
+            const activeGoal = goals.get(activeGoalId);
+            if (activeGoal && activeGoal.parentId !== null) {
+              addGoal('New Sibling', '', activeGoal.parentId);
+            }
+          }
+          break;
+        case 's':
+          e.preventDefault();
+          if (activeGoalId !== null) {
+            addGoal('New Child', '', activeGoalId);
+          }
+          break;
+        case 'd':
+          e.preventDefault();
+          if (activeGoalId !== null) {
+            deleteGoal(activeGoalId);
+          }
+          break;
+        case 'c':
+          e.preventDefault();
+          setMode('command');
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, navigateUp, navigateDown, navigateLeft, navigateRight]);
+  }, [mode, navigateUp, navigateDown, navigateLeft, navigateRight, addGoal, deleteGoal, activeGoalId, goals, setMode]);
 
   return (
     <div className="h-screen flex flex-col">
