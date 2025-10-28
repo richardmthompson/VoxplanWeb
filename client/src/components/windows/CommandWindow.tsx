@@ -63,14 +63,16 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
         onToggle();
         setHistory((prev) => [...prev, '✓ Exiting to Navigate mode', '']);
       } else if (cmd.startsWith('create root ') || cmd.startsWith('root ')) {
-        const name = command.substring(cmd.indexOf(' ', cmd.indexOf(' ') + 1) + 1).trim();
+        const prefix = cmd.startsWith('create root ') ? 'create root ' : 'root ';
+        const name = command.substring(prefix.length).trim();
         addGoal(name, '', null);
         setHistory((prev) => [...prev, `✓ Created root goal: ${name}`, '']);
       } else if (cmd.startsWith('create child ') || cmd.startsWith('child ')) {
         if (activeGoalId === null) {
           setHistory((prev) => [...prev, '✗ No active goal selected', '']);
         } else {
-          const name = command.substring(cmd.indexOf(' ', cmd.indexOf(' ') + 1) + 1).trim();
+          const prefix = cmd.startsWith('create child ') ? 'create child ' : 'child ';
+          const name = command.substring(prefix.length).trim();
           addGoal(name, '', activeGoalId);
           setHistory((prev) => [...prev, `✓ Created child goal: ${name}`, '']);
         }
@@ -82,7 +84,8 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
           if (activeGoal?.parentId === null) {
             setHistory((prev) => [...prev, '✗ Cannot create sibling of root', '']);
           } else {
-            const name = command.substring(cmd.indexOf(' ', cmd.indexOf(' ') + 1) + 1).trim();
+            const prefix = cmd.startsWith('create sibling ') ? 'create sibling ' : 'sibling ';
+            const name = command.substring(prefix.length).trim();
             addGoal(name, '', activeGoal?.parentId ?? null);
             setHistory((prev) => [...prev, `✓ Created sibling goal: ${name}`, '']);
           }
