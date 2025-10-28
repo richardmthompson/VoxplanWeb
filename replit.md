@@ -13,7 +13,9 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 ### October 28, 2025
+- **Fixed keyboard shortcuts always working**: Keyboard shortcuts now work reliably even after clicking buttons in the header. Main container is auto-focused on mount and refocused on clicks to ensure shortcuts are always active.
 - **Fixed keyboard shortcut conflict with command terminal**: Navigation shortcuts (h, j, k, l) are now properly disabled when typing in the command input. Added focus detection to prevent shortcuts from firing when any input element is active.
+- **Fixed command parsing bug**: Commands like "root My Goal" and "child Test Node" now correctly include the first word of the goal name.
 - **Dual-layout system completed**: Implemented tree and spider layout modes with layout-specific manual position persistence. Each mode maintains separate drag positions, allowing users to switch between layouts without losing custom arrangements.
 - **Terminal UI improvements**: ESC minimizes terminal, command mode properly manages application mode state, updated title to "voxplan command mode".
 

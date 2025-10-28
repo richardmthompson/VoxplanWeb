@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useTreeStore } from '@/stores/treeStore';
 import Header from '@/components/layout/Header';
@@ -11,6 +11,7 @@ export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
   const [commandWindowOpen, setCommandWindowOpen] = useState(false);
   const [attributeWindowOpen, setAttributeWindowOpen] = useState(false);
+  const mainContainerRef = useRef<HTMLDivElement>(null);
   
   const mode = useUIStore((state) => state.mode);
   const setMode = useUIStore((state) => state.setMode);
@@ -66,10 +67,16 @@ export default function Home() {
     }
   };
 
+  // Auto-focus main container on mount to ensure keyboard shortcuts work
+  useEffect(() => {
+    mainContainerRef.current?.focus();
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't process shortcuts if an input, textarea, or contenteditable element is focused
       const target = e.target as HTMLElement;
+      
       if (
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
@@ -131,7 +138,18 @@ export default function Home() {
   }, [mode, navigateUp, navigateDown, navigateLeft, navigateRight, addGoal, deleteGoal, activeGoalId, goals, setMode, attributeWindowOpen]);
 
   return (
-    <div className="h-screen flex flex-col">
+    <div 
+      ref={mainContainerRef}
+      className="h-screen flex flex-col outline-none" 
+      tabIndex={0}
+      onMouseDown={(e) => {
+        // When clicking anywhere in the app, ensure main container has focus
+        // This allows keyboard shortcuts to work even after clicking buttons
+        if ((e.target as HTMLElement).tagName !== 'INPUT' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+          (e.currentTarget as HTMLElement).focus();
+        }
+      }}
+    >
       <Header showHelp={showHelp} setShowHelp={setShowHelp} />
       
       {/* Full-screen TreeCanvas as background */}
