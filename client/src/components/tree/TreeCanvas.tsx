@@ -7,6 +7,10 @@ import ReactFlow, {
   useReactFlow,
   ReactFlowProvider,
   BackgroundVariant,
+  useNodesState,
+  useEdgesState,
+  NodeChange,
+  applyNodeChanges,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import GoalNode, { GoalNodeData } from './GoalNode';
@@ -21,8 +25,12 @@ const nodeTypes = {
 function TreeCanvasInner() {
   const { fitView, setCenter } = useReactFlow();
   const goals = useTreeStore((state) => state.goals);
+  const updateGoal = useTreeStore((state) => state.updateGoal);
   const activeGoalId = useTreeStore((state) => state.activeGoalId);
   const rootId = useTreeStore((state) => state.rootId);
+  
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   const calculateDepth = useCallback((goalId: number, goalsMap: Map<number, any>): number => {
     const goal = goalsMap.get(goalId);
@@ -30,7 +38,7 @@ function TreeCanvasInner() {
     return 1 + calculateDepth(goal.parentId, goalsMap);
   }, []);
 
-  const { nodes, edges } = useMemo(() => {
+  const buildNodesAndEdges = useCallback(() => {
     const nodes: Node<GoalNodeData>[] = [];
     const edges: Edge[] = [];
 
@@ -91,10 +99,21 @@ function TreeCanvasInner() {
   }, [goals, activeGoalId, rootId, calculateDepth]);
 
   useEffect(() => {
+    const { nodes: newNodes, edges: newEdges } = buildNodesAndEdges();
+    setNodes(newNodes);
+    setEdges(newEdges);
+  }, [buildNodesAndEdges, setNodes, setEdges]);
+
+  useEffect(() => {
     if (nodes.length > 0) {
       setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
     }
   }, [nodes.length, fitView]);
+
+  const handleNodeDragStop = useCallback((event: any, node: Node) => {
+    const goalId = parseInt(node.id);
+    updateGoal(goalId, { position: node.position });
+  }, [updateGoal]);
 
   const handleCenterActive = () => {
     if (activeGoalId !== null) {
@@ -110,6 +129,9 @@ function TreeCanvasInner() {
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
         fitView
         minZoom={0.1}
