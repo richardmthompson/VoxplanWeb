@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+export type LayoutMode = 'tree' | 'spider';
+
 export interface Goal {
   id: number;
   name: string;
@@ -14,6 +16,7 @@ interface TreeState {
   nextId: number;
   activeGoalId: number | null;
   rootId: number | null;
+  layoutMode: LayoutMode;
   
   addGoal: (name: string, details: string, parentId: number | null) => number;
   updateGoal: (id: number, updates: Partial<Goal>) => void;
@@ -27,8 +30,10 @@ interface TreeState {
   navigateDown: () => void;
   navigateLeft: () => void;
   navigateRight: () => void;
+  setLayoutMode: (mode: LayoutMode) => void;
+  clearAllPositions: () => void;
   clear: () => void;
-  loadTree: (root: Goal, allGoals: Goal[], nextId: number) => void;
+  loadTree: (root: Goal, allGoals: Goal[], nextId: number, layoutMode?: LayoutMode) => void;
 }
 
 export const useTreeStore = create<TreeState>()((set, get) => ({
@@ -36,6 +41,7 @@ export const useTreeStore = create<TreeState>()((set, get) => ({
     nextId: 0,
     activeGoalId: null,
     rootId: null,
+    layoutMode: 'tree',
 
     addGoal: (name: string, details: string, parentId: number | null) => {
       const state = get();
@@ -177,21 +183,38 @@ export const useTreeStore = create<TreeState>()((set, get) => ({
       }
     },
 
+    setLayoutMode: (mode: LayoutMode) => {
+      set({ layoutMode: mode });
+    },
+
+    clearAllPositions: () => {
+      const state = get();
+      const newGoals = new Map(state.goals);
+      
+      newGoals.forEach((goal, id) => {
+        newGoals.set(id, { ...goal, position: { x: 0, y: 0 } });
+      });
+      
+      set({ goals: newGoals });
+    },
+
     clear: () => {
       set({
         goals: new Map(),
         nextId: 0,
         activeGoalId: null,
-        rootId: null
+        rootId: null,
+        layoutMode: 'tree'
       });
     },
 
-    loadTree: (root: Goal, allGoals: Goal[], nextId: number) => {
+    loadTree: (root: Goal, allGoals: Goal[], nextId: number, layoutMode: LayoutMode = 'tree') => {
       set({
         goals: new Map(allGoals.map(g => [g.id, g])),
         nextId,
         rootId: root.id,
         activeGoalId: root.id,
+        layoutMode,
       });
     }
   }));
