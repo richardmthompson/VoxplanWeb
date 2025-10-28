@@ -1,10 +1,16 @@
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/stores/uiStore';
 import { useTreeStore } from '@/stores/treeStore';
-import { Command, Navigation, Mic } from 'lucide-react';
+import { Command, Navigation, Mic, HelpCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import HelpDialog from '@/components/dialogs/HelpDialog';
 
-export default function Header() {
+interface HeaderProps {
+  showHelp: boolean;
+  setShowHelp: (show: boolean) => void;
+}
+
+export default function Header({ showHelp, setShowHelp }: HeaderProps) {
   const mode = useUIStore((state) => state.mode);
   const setMode = useUIStore((state) => state.setMode);
   const activeGoalId = useTreeStore((state) => state.activeGoalId);
@@ -86,7 +92,19 @@ export default function Header() {
             {totalNodes} {totalNodes === 1 ? 'node' : 'nodes'}
           </Badge>
         </div>
+        
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => setShowHelp(true)}
+          title="Help (Press ?)"
+          data-testid="button-help"
+        >
+          <HelpCircle className="w-5 h-5" />
+        </Button>
       </div>
+
+      <HelpDialog open={showHelp} onOpenChange={setShowHelp} />
     </header>
   );
 }

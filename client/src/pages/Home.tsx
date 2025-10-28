@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Header from '@/components/layout/Header';
 import TreeCanvas from '@/components/tree/TreeCanvas';
 import CommandWindow from '@/components/windows/CommandWindow';
@@ -14,6 +14,7 @@ export default function Home() {
   const navigateLeft = useTreeStore((state) => state.navigateLeft);
   const navigateRight = useTreeStore((state) => state.navigateRight);
   const mode = useUIStore((state) => state.mode);
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     if (goals.size === 0) {
@@ -23,11 +24,23 @@ export default function Home() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (mode !== 'navigate') return;
-
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         return;
       }
+
+      if (e.key === '?' && !e.shiftKey) {
+        e.preventDefault();
+        setShowHelp(prev => !prev);
+        return;
+      }
+
+      if (e.key === '/' && e.shiftKey) {
+        e.preventDefault();
+        setShowHelp(prev => !prev);
+        return;
+      }
+
+      if (mode !== 'navigate') return;
 
       switch (e.key) {
         case 'ArrowUp':
@@ -55,7 +68,7 @@ export default function Home() {
 
   return (
     <div className="h-screen flex flex-col">
-      <Header />
+      <Header showHelp={showHelp} setShowHelp={setShowHelp} />
       <div className="flex-1 flex overflow-hidden">
         <div className="w-80 p-4 border-r bg-background overflow-auto">
           <CommandWindow />
