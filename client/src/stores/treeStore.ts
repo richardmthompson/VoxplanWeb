@@ -9,6 +9,10 @@ export interface Goal {
   parentId: number | null;
   totalheight: number;
   position: { x: number; y: number };
+  manualPositions?: {
+    tree?: { x: number; y: number };
+    spider?: { x: number; y: number };
+  };
 }
 
 interface TreeState {
@@ -57,7 +61,8 @@ export const useTreeStore = create<TreeState>()((set, get) => ({
         details,
         parentId,
         totalheight,
-        position: { x: 0, y: 0 }
+        position: { x: 0, y: 0 },
+        manualPositions: {}
       };
 
       const newGoals = new Map(state.goals);
@@ -192,7 +197,7 @@ export const useTreeStore = create<TreeState>()((set, get) => ({
       const newGoals = new Map(state.goals);
       
       newGoals.forEach((goal, id) => {
-        newGoals.set(id, { ...goal, position: { x: 0, y: 0 } });
+        newGoals.set(id, { ...goal, position: { x: 0, y: 0 }, manualPositions: {} });
       });
       
       set({ goals: newGoals });
