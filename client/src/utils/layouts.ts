@@ -128,14 +128,10 @@ export function calculateSpiderLayout(
   root.each((node: any) => {
     const goal = node.data.goal;
     
-    // Log for debugging
-    console.log(`[Spider Layout] Node ${node.data.id}: depth=${node.depth}, manualPositions=${JSON.stringify(goal.manualPositions)}`);
-    
     // Use saved position for spider mode if it exists, otherwise calculate radial position
     let position;
     if (goal.manualPositions?.spider) {
       position = goal.manualPositions.spider;
-      console.log(`  → Using manual spider position: ${JSON.stringify(position)}`);
     } else {
       // Convert polar coordinates to cartesian
       // Use depth-based radius to ensure even spacing between levels
@@ -146,7 +142,6 @@ export function calculateSpiderLayout(
         x: centerX + radius * Math.cos(angle),
         y: centerY + radius * Math.sin(angle)
       };
-      console.log(`  → Calculated spider position: ${JSON.stringify(position)} (radius=${radius}, angle=${angle})`);
     }
 
     nodes.push({

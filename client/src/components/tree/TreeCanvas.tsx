@@ -41,7 +41,6 @@ function TreeCanvasInner() {
   const rootId = useTreeStore((state) => state.rootId);
   const layoutMode = useTreeStore((state) => state.layoutMode);
   const setLayoutMode = useTreeStore((state) => state.setLayoutMode);
-  const clearAllPositions = useTreeStore((state) => state.clearAllPositions);
   
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -102,10 +101,11 @@ function TreeCanvasInner() {
   }, [buildNodesAndEdges, setNodes, setEdges]);
 
   useEffect(() => {
-    if (nodes.length > 0) {
+    if (nodes.length > 0 && layoutMode === 'tree') {
+      // Only auto-fit for tree mode; spider mode has fixed spacing
       setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
     }
-  }, [nodes.length, fitView]);
+  }, [nodes.length, fitView, layoutMode]);
 
   const handleNodeDragStop = useCallback((event: any, node: Node) => {
     const goalId = parseInt(node.id);
@@ -137,14 +137,11 @@ function TreeCanvasInner() {
 
   const handleConfirmLayoutChange = () => {
     if (pendingLayoutMode) {
-      // Clear positions and update mode in a single store update
-      clearAllPositions();
-      // Use setTimeout to ensure store update completes before mode change
-      setTimeout(() => {
-        setLayoutMode(pendingLayoutMode);
-        setShowLayoutDialog(false);
-        setPendingLayoutMode(null);
-      }, 0);
+      // Just switch the mode - layout calculators will use mode-specific manual positions
+      // If a node doesn't have a manual position for the new mode, it will be recalculated
+      setLayoutMode(pendingLayoutMode);
+      setShowLayoutDialog(false);
+      setPendingLayoutMode(null);
     }
   };
 
@@ -205,8 +202,7 @@ function TreeCanvasInner() {
           <AlertDialogHeader>
             <AlertDialogTitle>Switch Layout Mode?</AlertDialogTitle>
             <AlertDialogDescription>
-              Switching to {pendingLayoutMode === 'tree' ? 'tree' : 'spider'} layout will reset all manually positioned nodes.
-              This action cannot be undone.
+              Switching to {pendingLayoutMode === 'tree' ? 'tree' : 'spider'} layout. Manual positions are preserved per layout, so you can switch back and forth without losing your custom arrangements.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
