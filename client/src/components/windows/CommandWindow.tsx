@@ -53,6 +53,7 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
           '  sibling [name]  - Add sibling to active goal',
           '  edit [name]     - Rename active goal',
           '  delete          - Delete active goal',
+          '  current         - Show details of selected goal',
           '  clear           - Clear terminal',
           '  exit            - Close terminal (or ESC key)',
           ''
@@ -100,6 +101,25 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
         } else {
           deleteGoal(activeGoalId);
           setHistory((prev) => [...prev, `✓ Deleted goal`, '']);
+        }
+      } else if (cmd === 'current') {
+        if (activeGoalId === null) {
+          setHistory((prev) => [...prev, '✗ No goal currently selected', '']);
+        } else {
+          const goal = getGoal(activeGoalId);
+          if (goal) {
+            setHistory((prev) => [...prev,
+              '─────────────────────────────────',
+              `Name: ${goal.name}`,
+              `ID: ${goal.id}`,
+              `Parent: ${goal.parentId ?? 'Root'}`,
+              `Details: ${goal.details || '(none)'}`,
+              '─────────────────────────────────',
+              ''
+            ]);
+          } else {
+            setHistory((prev) => [...prev, '✗ Goal not found', '']);
+          }
         }
       } else if (cmd === 'clear') {
         setHistory(['']);
