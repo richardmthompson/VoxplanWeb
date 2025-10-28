@@ -15,7 +15,7 @@ function GoalNode({ data }: NodeProps<GoalNodeData>) {
   
   const diameter = data.totalheight * 0.73;
   const fontSize = Math.round(data.totalheight * 0.2);
-  const labelSpacing = diameter;
+  const labelSpacing = diameter * 0.2; // Reduced from diameter to 20% of diameter
   
   const handleClick = () => {
     setActiveGoal(data.id);
@@ -25,7 +25,7 @@ function GoalNode({ data }: NodeProps<GoalNodeData>) {
     <div
       className="relative flex flex-col items-center cursor-pointer"
       onClick={handleClick}
-      style={{ width: diameter * 2, minHeight: diameter + labelSpacing + fontSize * 2 }}
+      style={{ width: diameter * 2 }}
       data-testid={`goal-node-${data.id}`}
     >
       <Handle type="target" position={Position.Top} className="opacity-0" />
@@ -56,15 +56,15 @@ function GoalNode({ data }: NodeProps<GoalNodeData>) {
       </div>
       
       <div
-        className="text-center font-medium text-foreground mt-2 max-w-40 truncate"
-        style={{ fontSize: `${fontSize}px`, marginTop: `${labelSpacing * 0.2}px` }}
+        className="text-center font-medium text-foreground max-w-40 truncate"
+        style={{ fontSize: `${fontSize}px`, marginTop: `${labelSpacing}px` }}
         title={data.name}
         data-testid={`goal-label-${data.id}`}
       >
         {data.name}
       </div>
       
-      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+      <Handle type="source" position={Position.Bottom} className="opacity-0" style={{ bottom: -4 }} />
     </div>
   );
 }
