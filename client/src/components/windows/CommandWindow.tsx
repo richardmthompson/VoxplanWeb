@@ -134,7 +134,7 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
           data-testid="button-open-terminal"
         >
           <Terminal className="w-4 h-4" />
-          <span className="text-sm font-mono">Terminal (c)</span>
+          <span className="text-sm font-mono">Command Mode (⌘C)</span>
         </button>
       )}
 
@@ -149,7 +149,7 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
           {/* Terminal Header */}
           <div className="flex items-center gap-2 px-3 py-2 bg-green-500/10 border-b border-green-500/30">
             <Terminal className="w-4 h-4 text-green-500" />
-            <span className="text-xs font-mono text-green-500">voxplan terminal</span>
+            <span className="text-xs font-mono text-green-500">voxplan command mode</span>
             <div className="ml-auto flex gap-1.5 items-center">
               <button
                 onClick={(e) => {
@@ -198,7 +198,7 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
                 value={command}
                 onChange={(e) => setCommand(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 bg-transparent border-none outline-none text-green-400 font-mono caret-green-400"
+                className="flex-1 bg-transparent border-none outline-none text-green-400 font-mono caret-green-400 terminal-input"
                 autoFocus
                 data-testid="input-command"
               />
