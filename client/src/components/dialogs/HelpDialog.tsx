@@ -14,6 +14,54 @@ interface HelpDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+interface ShortcutRowProps {
+  keys: string[];
+  description: string;
+}
+
+function ShortcutRow({ keys, description }: ShortcutRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center gap-2">
+        {keys.map((key, idx) => (
+          <Badge
+            key={idx}
+            variant="outline"
+            className="font-mono text-xs min-w-8 justify-center"
+          >
+            {key}
+          </Badge>
+        ))}
+      </div>
+      <div className="text-sm flex-1">{description}</div>
+    </div>
+  );
+}
+
+interface CommandRowProps {
+  command: string;
+  alias?: string;
+  description: string;
+}
+
+function CommandRow({ command, alias, description }: CommandRowProps) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-baseline gap-2">
+        <code className="bg-muted px-2 py-0.5 rounded font-mono text-xs">
+          {command}
+        </code>
+        {alias && (
+          <span className="text-xs text-muted-foreground">
+            or <code className="bg-muted px-2 py-0.5 rounded font-mono">{alias}</code>
+          </span>
+        )}
+      </div>
+      <p className="text-sm text-muted-foreground ml-1">{description}</p>
+    </div>
+  );
+}
+
 export default function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -69,11 +117,44 @@ export default function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
           <Separator />
 
           <section>
-            <h3 className="text-lg font-semibold mb-3">Keyboard Shortcuts</h3>
+            <h3 className="text-lg font-semibold mb-3">Available Commands</h3>
             
             <div className="space-y-4">
               <div>
-                <h4 className="font-medium mb-2 text-sm text-muted-foreground">NAVIGATE MODE</h4>
+                <h4 className="font-medium mb-2 text-sm text-muted-foreground">COMMAND MODE</h4>
+                <div className="space-y-2 text-sm">
+                  <CommandRow
+                    command="create root [name]"
+                    alias="root [name]"
+                    description="Create a new root goal"
+                  />
+                  <CommandRow
+                    command="create child [name]"
+                    alias="child [name]"
+                    description="Add a child to the active goal"
+                  />
+                  <CommandRow
+                    command="create sibling [name]"
+                    alias="sibling [name]"
+                    description="Add a sibling to the active goal"
+                  />
+                  <CommandRow
+                    command="edit [new name]"
+                    description="Rename the active goal"
+                  />
+                  <CommandRow
+                    command="delete"
+                    description="Delete the active goal (cannot delete root)"
+                  />
+                  <CommandRow
+                    command="clear"
+                    description="Clear command history"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2 text-sm text-muted-foreground">NAVIGATE MODE SHORTCUTS</h4>
                 <div className="space-y-2">
                   <ShortcutRow
                     keys={['↑']}
@@ -95,11 +176,15 @@ export default function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
               </div>
 
               <div>
-                <h4 className="font-medium mb-2 text-sm text-muted-foreground">GLOBAL</h4>
+                <h4 className="font-medium mb-2 text-sm text-muted-foreground">GLOBAL SHORTCUTS</h4>
                 <div className="space-y-2">
                   <ShortcutRow
                     keys={['?']}
                     description="Toggle this help dialog"
+                  />
+                  <ShortcutRow
+                    keys={['Enter']}
+                    description="Execute command (in command window)"
                   />
                 </div>
               </div>
@@ -111,48 +196,25 @@ export default function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
           <section>
             <h3 className="text-lg font-semibold mb-3">Getting Started</h3>
             <ol className="space-y-2 text-sm list-decimal list-inside">
-              <li>Start in <strong>Command Mode</strong> and add child goals using the command window</li>
+              <li>Start in <strong>Command Mode</strong> and type commands like <code className="bg-muted px-1 rounded">child My First Goal</code></li>
               <li>Switch to <strong>Navigate Mode</strong> to explore your goal tree with arrow keys</li>
-              <li>Click on any goal node to select it</li>
-              <li>Use the attribute panel on the right to view and edit goal details</li>
-              <li>Use the center button in the tree canvas to focus on the active goal</li>
+              <li>Click on any goal node to select it (works in any mode)</li>
+              <li>Use the <strong>Attribute Panel</strong> on the right to edit name and details, then click Save</li>
+              <li>Use the center button (⊕) in the tree canvas to focus on the active goal</li>
             </ol>
           </section>
-
-          <Separator />
-
-          <section className="text-xs text-muted-foreground">
-            <p>
-              <strong>Tip:</strong> The active goal is always shown in the breadcrumb in the header
-              and highlighted in red on the tree canvas.
-            </p>
+          
+          <section>
+            <h3 className="text-lg font-semibold mb-3">Tips</h3>
+            <ul className="space-y-2 text-sm list-disc list-inside">
+              <li>Commands can use shortcuts: <code className="bg-muted px-1 rounded">child</code> instead of <code className="bg-muted px-1 rounded">create child</code></li>
+              <li>The active goal is shown in red on the tree and in the header breadcrumb</li>
+              <li>You can edit goals via commands OR the attribute panel</li>
+              <li>Pan and zoom the tree canvas to explore large goal hierarchies</li>
+            </ul>
           </section>
         </div>
       </DialogContent>
     </Dialog>
-  );
-}
-
-interface ShortcutRowProps {
-  keys: string[];
-  description: string;
-}
-
-function ShortcutRow({ keys, description }: ShortcutRowProps) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <div className="flex items-center gap-2">
-        {keys.map((key, idx) => (
-          <Badge
-            key={idx}
-            variant="outline"
-            className="font-mono text-xs min-w-8 justify-center"
-          >
-            {key}
-          </Badge>
-        ))}
-      </div>
-      <div className="text-sm flex-1">{description}</div>
-    </div>
   );
 }
