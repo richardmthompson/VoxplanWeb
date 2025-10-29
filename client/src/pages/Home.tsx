@@ -12,6 +12,7 @@ export default function Home() {
   const [commandWindowOpen, setCommandWindowOpen] = useState(false);
   const [attributeWindowOpen, setAttributeWindowOpen] = useState(false);
   const mainContainerRef = useRef<HTMLDivElement>(null);
+  const justCreatedGoalRef = useRef(false);
   
   const mode = useUIStore((state) => state.mode);
   const setMode = useUIStore((state) => state.setMode);
@@ -72,6 +73,14 @@ export default function Home() {
     mainContainerRef.current?.focus();
   }, []);
 
+  // Open attributes window when a goal is created
+  useEffect(() => {
+    if (justCreatedGoalRef.current && activeGoalId !== null) {
+      setAttributeWindowOpen(true);
+      justCreatedGoalRef.current = false;
+    }
+  }, [activeGoalId]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't process shortcuts if an input, textarea, or contenteditable element is focused
@@ -112,16 +121,19 @@ export default function Home() {
           e.preventDefault();
           // If no goals exist, create a root node
           if (goals.size === 0) {
+            justCreatedGoalRef.current = true;
             addGoal('New Root', '', null);
           } else if (activeGoalId !== null) {
             const activeGoal = goals.get(activeGoalId);
             if (activeGoal?.parentId !== null) {
+              justCreatedGoalRef.current = true;
               addGoal('New Sibling', '', activeGoal?.parentId ?? null);
             }
           }
         } else if (e.key === 's') {
           e.preventDefault();
           if (activeGoalId !== null) {
+            justCreatedGoalRef.current = true;
             addGoal('New Child', '', activeGoalId);
           }
         } else if (e.key === 'd') {
@@ -172,7 +184,7 @@ export default function Home() {
             }
           }}
           onGoalCreated={() => {
-            setAttributeWindowOpen(true);
+            justCreatedGoalRef.current = true;
           }}
         />
         

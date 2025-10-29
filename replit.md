@@ -12,6 +12,11 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 29, 2025
+- **Auto-open attributes on goal creation**: Attributes window now automatically opens whenever a new goal is created (via keyboard shortcuts 'n'/'s' or command terminal 'root'/'child'/'sibling'), with the Name field focused and selected for immediate editing.
+- **Keyboard zoom controls**: Added '+' and '-' keyboard shortcuts to zoom in and out of the canvas using React Flow's zoom API.
+- **UI positioning fixes**: Moved layout toggle buttons to bottom-center, command window shifted right to clear zoom controls, ensuring no UI element overlaps.
+
 ### October 28, 2025
 - **Enhanced attribute window UX**: Name field auto-focuses and selects text when opening attributes. ESC closes without saving, ENTER saves and closes. Keyboard shortcuts properly disabled while typing in attribute fields.
 - **Fixed keyboard shortcuts always working**: Keyboard shortcuts now work reliably even after clicking buttons in the header. Main container is auto-focused on mount and refocused on clicks to ensure shortcuts are always active.
