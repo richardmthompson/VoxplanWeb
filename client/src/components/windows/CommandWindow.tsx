@@ -153,7 +153,7 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
       {!isOpen && (
         <button
           onClick={onToggle}
-          className="fixed bottom-4 left-4 flex items-center gap-2 px-4 py-2 bg-black/90 border border-green-500/50 rounded-lg text-green-400 hover:bg-black hover:border-green-400 transition-all shadow-lg"
+          className="fixed bottom-4 left-20 flex items-center gap-2 px-4 py-2 bg-black/90 border border-green-500/50 rounded-lg text-green-400 hover:bg-black hover:border-green-400 transition-all shadow-lg"
           data-testid="button-open-terminal"
         >
           <Terminal className="w-4 h-4" />
@@ -164,7 +164,7 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
       {/* Expanded terminal window */}
       {isOpen && (
         <div 
-          className="fixed bottom-20 left-4 flex flex-col bg-black/95 rounded-lg border border-green-500/30 overflow-hidden shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom-8"
+          className="fixed bottom-20 left-20 flex flex-col bg-black/95 rounded-lg border border-green-500/30 overflow-hidden shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom-8"
           style={{ width: '480px', height: '320px' }}
           data-testid="command-window"
           onClick={() => inputRef.current?.focus()}
