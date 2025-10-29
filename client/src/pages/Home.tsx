@@ -110,7 +110,10 @@ export default function Home() {
           navigateRight();
         } else if (e.key === 'n') {
           e.preventDefault();
-          if (activeGoalId !== null) {
+          // If no goals exist, create a root node
+          if (goals.size === 0) {
+            addGoal('New Root', '', null);
+          } else if (activeGoalId !== null) {
             const activeGoal = goals.get(activeGoalId);
             if (activeGoal?.parentId !== null) {
               addGoal('New Sibling', '', activeGoal?.parentId ?? null);
