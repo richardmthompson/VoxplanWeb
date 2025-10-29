@@ -13,6 +13,9 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 ### October 29, 2025
+- **Major layout system overhaul**: Implemented hierarchical shapes (root=square, level1=circle, level2=diamond, level3=triangle, level4+=hexagon) using custom SVG rendering, dramatic size reduction by depth (75%, 60%, 48%, 40%), tighter clustering in both tree (120px spacing) and spider (120px radius) layouts, and improved sibling grouping via adaptive separation.
+- **Parent-drag-children feature**: Added dragLocked toggle (Link/Unlink icon) on nodes with children. When locked (default), dragging a parent moves entire subtree together. Manual positions persist per layout mode. Uses onNodeDrag to calculate delta and recursively update descendant positions.
+- **Improved attribute window sync**: Fixed race condition where attributes would show stale data by using ref flag + useEffect pattern instead of setTimeout, ensuring attributes always display newly created goal data.
 - **Auto-open attributes on goal creation**: Attributes window now automatically opens whenever a new goal is created (via keyboard shortcuts 'n'/'s' or command terminal 'root'/'child'/'sibling'), with the Name field focused and selected for immediate editing.
 - **Keyboard zoom controls**: Added '+' and '-' keyboard shortcuts to zoom in and out of the canvas using React Flow's zoom API.
 - **UI positioning fixes**: Moved layout toggle buttons to bottom-center, command window shifted right to clear zoom controls, ensuring no UI element overlaps.

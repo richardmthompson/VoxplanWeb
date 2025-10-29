@@ -13,6 +13,7 @@ export interface Goal {
     tree?: { x: number; y: number };
     spider?: { x: number; y: number };
   };
+  dragLocked?: boolean; // When true, dragging this node also moves its children
 }
 
 interface TreeState {
@@ -52,8 +53,21 @@ export const useTreeStore = create<TreeState>()((set, get) => ({
       const id = state.nextId;
       
       const parent = parentId !== null ? state.goals.get(parentId) : null;
-      const depth = parent && parentId !== null ? (state.getChildren(parentId).length || 0) : 0;
-      const totalheight = parent ? parent.totalheight * 0.9 : 109.6;
+      
+      // Calculate depth (how many levels deep from root)
+      const calculateDepth = (goalId: number | null): number => {
+        if (goalId === null) return 0;
+        const goal = state.goals.get(goalId);
+        if (!goal) return 0;
+        return 1 + calculateDepth(goal.parentId);
+      };
+      
+      const depth = calculateDepth(parentId);
+      
+      // Dramatic size reduction by depth: root=110, level1=75%, level2=60%, level3=48%, level4+=40%
+      const sizeMultipliers = [1.0, 0.75, 0.60, 0.48, 0.40];
+      const multiplier = sizeMultipliers[Math.min(depth, sizeMultipliers.length - 1)];
+      const totalheight = 110 * multiplier;
       
       const newGoal: Goal = {
         id,
@@ -62,7 +76,8 @@ export const useTreeStore = create<TreeState>()((set, get) => ({
         parentId,
         totalheight,
         position: { x: 0, y: 0 },
-        manualPositions: {}
+        manualPositions: {},
+        dragLocked: true // Default to locked (children move with parent)
       };
 
       const newGoals = new Map(state.goals);

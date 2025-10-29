@@ -74,12 +74,15 @@ export function calculateTreeLayout(
 
     if (children.length === 0) return x;
 
-    const childSpacing = 200;
+    // Adaptive spacing based on sibling count for better clustering
+    const baseSpacing = 120;
+    const childSpacing = children.length > 4 ? baseSpacing * 0.8 : baseSpacing;
+    const verticalSpacing = 140; // Tighter vertical spacing
     const totalWidth = (children.length - 1) * childSpacing;
     let childX = x - totalWidth / 2;
 
     children.forEach((child) => {
-      childX = positionTree(child.id, childX, y + 180);
+      childX = positionTree(child.id, childX, y + verticalSpacing);
       childX += childSpacing;
     });
 
@@ -106,7 +109,7 @@ export function calculateSpiderLayout(
   // Center point for the spider layout
   const centerX = 600;
   const centerY = 400;
-  const radiusPerLevel = 200; // Distance between levels
+  const radiusPerLevel = 120; // Tighter radial spacing for better clustering
 
   const root = hierarchy(hierarchyData);
   
@@ -117,13 +120,22 @@ export function calculateSpiderLayout(
   const treeLayout = tree()
     .size([2 * Math.PI, maxDepth > 0 ? radiusPerLevel * maxDepth : radiusPerLevel])
     .separation((a, b) => {
-      // More separation between non-siblings
-      return a.parent === b.parent ? 1 : 2;
+      // Improved clustering: siblings closer, non-siblings further apart
+      return a.parent === b.parent ? 0.8 : 2.5;
     });
 
   treeLayout(root);
 
   const nodes: LayoutNode[] = [];
+
+  // For linear trees (single chain), spread nodes around the circle
+  // For branching trees, use d3's calculated angles
+  const isLinearTree = root.descendants().every((n: any) => {
+    return n.children ? n.children.length <= 1 : true;
+  });
+
+  let linearNodeIndex = 0;
+  const totalLinearNodes = root.descendants().length;
 
   root.each((node: any) => {
     const goal = node.data.goal;
@@ -133,9 +145,17 @@ export function calculateSpiderLayout(
     if (goal.manualPositions?.spider) {
       position = goal.manualPositions.spider;
     } else {
-      // Convert polar coordinates to cartesian
-      // Use depth-based radius to ensure even spacing between levels
-      const angle = node.x - Math.PI / 2; // Offset to start at top
+      let angle;
+      
+      if (isLinearTree) {
+        // For linear trees, evenly distribute nodes around the circle
+        angle = (linearNodeIndex / Math.max(totalLinearNodes - 1, 1)) * (2 * Math.PI) - Math.PI / 2;
+        linearNodeIndex++;
+      } else {
+        // For branching trees, use d3's calculated angle
+        angle = node.x - Math.PI / 2; // Offset to start at top
+      }
+      
       const radius = node.depth * radiusPerLevel;
       
       position = {

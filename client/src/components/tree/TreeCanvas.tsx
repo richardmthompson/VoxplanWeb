@@ -47,6 +47,8 @@ function TreeCanvasInner() {
   const [showLayoutDialog, setShowLayoutDialog] = useState(false);
   const [pendingLayoutMode, setPendingLayoutMode] = useState<'tree' | 'spider' | null>(null);
 
+  const getChildren = useTreeStore((state) => state.getChildren);
+
   const buildNodesAndEdges = useCallback(() => {
     const nodes: Node<GoalNodeData>[] = [];
     const edges: Edge[] = [];
@@ -64,6 +66,8 @@ function TreeCanvasInner() {
       const goal = goals.get(goalId);
       if (!goal) return;
 
+      const children = getChildren(goalId);
+
       nodes.push({
         id: layoutNode.id,
         type: 'goalNode',
@@ -74,6 +78,8 @@ function TreeCanvasInner() {
           totalheight: goal.totalheight,
           isActive: goalId === activeGoalId,
           depth: layoutNode.depth,
+          hasChildren: children.length > 0,
+          dragLocked: goal.dragLocked ?? true,
         },
       });
     });
@@ -92,7 +98,7 @@ function TreeCanvasInner() {
     });
 
     return { nodes, edges };
-  }, [goals, activeGoalId, rootId, layoutMode]);
+  }, [goals, activeGoalId, rootId, layoutMode, getChildren]);
 
   useEffect(() => {
     const { nodes: newNodes, edges: newEdges } = buildNodesAndEdges();
@@ -134,6 +140,54 @@ function TreeCanvasInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [zoomIn, zoomOut]);
 
+  // Helper to recursively get all descendant IDs
+  const getAllDescendants = useCallback((goalId: number): number[] => {
+    const children = getChildren(goalId);
+    const descendants: number[] = [];
+    
+    children.forEach(child => {
+      descendants.push(child.id);
+      descendants.push(...getAllDescendants(child.id));
+    });
+    
+    return descendants;
+  }, [getChildren]);
+
+  const handleNodeDrag = useCallback((event: any, node: Node) => {
+    const goalId = parseInt(node.id);
+    const goal = goals.get(goalId);
+    
+    if (!goal || !goal.dragLocked) return;
+    
+    // Calculate the delta from the node's last position
+    const currentNodes = nodes;
+    const previousNode = currentNodes.find(n => n.id === node.id);
+    if (!previousNode) return;
+    
+    const deltaX = node.position.x - previousNode.position.x;
+    const deltaY = node.position.y - previousNode.position.y;
+    
+    // If there's no movement, skip
+    if (deltaX === 0 && deltaY === 0) return;
+    
+    // Get all descendants
+    const descendantIds = getAllDescendants(goalId);
+    
+    // Update positions of all descendants
+    setNodes(currentNodes.map(n => {
+      if (descendantIds.includes(parseInt(n.id))) {
+        return {
+          ...n,
+          position: {
+            x: n.position.x + deltaX,
+            y: n.position.y + deltaY
+          }
+        };
+      }
+      return n;
+    }));
+  }, [goals, nodes, getAllDescendants, setNodes]);
+
   const handleNodeDragStop = useCallback((event: any, node: Node) => {
     const goalId = parseInt(node.id);
     const goal = goals.get(goalId);
@@ -144,8 +198,24 @@ function TreeCanvasInner() {
         [layoutMode]: node.position
       };
       updateGoal(goalId, { position: node.position, manualPositions });
+      
+      // If drag locked, also save positions of all children
+      if (goal.dragLocked) {
+        const descendantIds = getAllDescendants(goalId);
+        descendantIds.forEach(descId => {
+          const descendantNode = nodes.find(n => parseInt(n.id) === descId);
+          const descendant = goals.get(descId);
+          if (descendantNode && descendant) {
+            const descendantManualPositions = {
+              ...descendant.manualPositions,
+              [layoutMode]: descendantNode.position
+            };
+            updateGoal(descId, { position: descendantNode.position, manualPositions: descendantManualPositions });
+          }
+        });
+      }
     }
-  }, [updateGoal, goals, layoutMode]);
+  }, [updateGoal, goals, layoutMode, getAllDescendants, nodes]);
 
   const handleCenterActive = () => {
     if (activeGoalId !== null) {
@@ -184,6 +254,7 @@ function TreeCanvasInner() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeDrag={handleNodeDrag}
         onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
         fitView
