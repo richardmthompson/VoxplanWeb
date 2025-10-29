@@ -169,7 +169,7 @@ function TreeCanvasInner() {
           className="bg-card border border-card-border rounded-lg shadow-sm"
           showInteractive={false}
         />
-        <div className="absolute bottom-4 right-4 z-10 flex gap-2">
+        <div className="absolute bottom-4 left-4 z-10 flex gap-2">
           <Button
             size="icon"
             variant="secondary"
