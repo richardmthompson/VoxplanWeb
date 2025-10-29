@@ -34,7 +34,7 @@ const nodeTypes = {
 };
 
 function TreeCanvasInner() {
-  const { fitView, setCenter } = useReactFlow();
+  const { fitView, setCenter, zoomIn, zoomOut } = useReactFlow();
   const goals = useTreeStore((state) => state.goals);
   const updateGoal = useTreeStore((state) => state.updateGoal);
   const activeGoalId = useTreeStore((state) => state.activeGoalId);
@@ -106,6 +106,33 @@ function TreeCanvasInner() {
       setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
     }
   }, [nodes.length, fitView, layoutMode]);
+
+  // Keyboard zoom controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't process shortcuts if an input, textarea, or contenteditable element is focused
+      const target = e.target as HTMLElement;
+      
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        zoomIn();
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        zoomOut();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoomIn, zoomOut]);
 
   const handleNodeDragStop = useCallback((event: any, node: Node) => {
     const goalId = parseInt(node.id);

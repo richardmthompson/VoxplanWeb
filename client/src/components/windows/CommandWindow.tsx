@@ -6,9 +6,10 @@ import { Terminal, Minimize2, Maximize2 } from 'lucide-react';
 interface CommandWindowProps {
   isOpen: boolean;
   onToggle: () => void;
+  onGoalCreated?: () => void;
 }
 
-export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) {
+export default function CommandWindow({ isOpen, onToggle, onGoalCreated }: CommandWindowProps) {
   const [command, setCommand] = useState('');
   const [history, setHistory] = useState<string[]>([
     'VoxPlan Terminal v1.0',
@@ -67,6 +68,7 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
         const name = command.substring(prefix.length).trim();
         addGoal(name, '', null);
         setHistory((prev) => [...prev, `✓ Created root goal: ${name}`, '']);
+        onGoalCreated?.();
       } else if (cmd.startsWith('create child ') || cmd.startsWith('child ')) {
         if (activeGoalId === null) {
           setHistory((prev) => [...prev, '✗ No active goal selected', '']);
@@ -75,6 +77,7 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
           const name = command.substring(prefix.length).trim();
           addGoal(name, '', activeGoalId);
           setHistory((prev) => [...prev, `✓ Created child goal: ${name}`, '']);
+          onGoalCreated?.();
         }
       } else if (cmd.startsWith('create sibling ') || cmd.startsWith('sibling ')) {
         if (activeGoalId === null) {
@@ -88,6 +91,7 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
             const name = command.substring(prefix.length).trim();
             addGoal(name, '', activeGoal?.parentId ?? null);
             setHistory((prev) => [...prev, `✓ Created sibling goal: ${name}`, '']);
+            onGoalCreated?.();
           }
         }
       } else if (cmd.startsWith('edit ')) {

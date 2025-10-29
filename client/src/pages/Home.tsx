@@ -170,7 +170,10 @@ export default function Home() {
             } else {
               setMode('navigate');
             }
-          }} 
+          }}
+          onGoalCreated={() => {
+            setAttributeWindowOpen(true);
+          }}
         />
         
         {/* Floating Attribute Window */}
