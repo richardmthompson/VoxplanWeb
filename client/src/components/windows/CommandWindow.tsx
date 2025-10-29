@@ -164,7 +164,7 @@ export default function CommandWindow({ isOpen, onToggle }: CommandWindowProps) 
       {/* Expanded terminal window */}
       {isOpen && (
         <div 
-          className="fixed bottom-4 left-4 flex flex-col bg-black/95 rounded-lg border border-green-500/30 overflow-hidden shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom-8"
+          className="fixed bottom-20 left-4 flex flex-col bg-black/95 rounded-lg border border-green-500/30 overflow-hidden shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom-8"
           style={{ width: '480px', height: '320px' }}
           data-testid="command-window"
           onClick={() => inputRef.current?.focus()}
