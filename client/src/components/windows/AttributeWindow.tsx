@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, type KeyboardEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ export default function AttributeWindow({ isOpen, onToggle }: AttributeWindowPro
   const getGoal = useTreeStore((state) => state.getGoal);
   const updateGoal = useTreeStore((state) => state.updateGoal);
   const { toast } = useToast();
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const activeGoal = activeGoalId !== null ? getGoal(activeGoalId) : null;
 
@@ -33,6 +34,16 @@ export default function AttributeWindow({ isOpen, onToggle }: AttributeWindowPro
     }
   }, [activeGoal]);
 
+  // Auto-focus name input when window opens
+  useEffect(() => {
+    if (isOpen && nameInputRef.current) {
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+        nameInputRef.current?.select();
+      }, 100);
+    }
+  }, [isOpen]);
+
   const handleSave = () => {
     if (activeGoalId !== null) {
       updateGoal(activeGoalId, { name, details });
@@ -40,6 +51,17 @@ export default function AttributeWindow({ isOpen, onToggle }: AttributeWindowPro
         title: 'Goal Updated',
         description: 'Changes saved successfully',
       });
+    }
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      onToggle();
+    } else if (e.key === 'Enter' && e.target === nameInputRef.current) {
+      e.preventDefault();
+      handleSave();
+      onToggle();
     }
   };
 
@@ -80,7 +102,7 @@ export default function AttributeWindow({ isOpen, onToggle }: AttributeWindowPro
           </div>
 
           {/* Window Body */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" onKeyDown={handleKeyDown}>
             {activeGoal ? (
               <>
                 <div className="space-y-2">
@@ -88,6 +110,7 @@ export default function AttributeWindow({ isOpen, onToggle }: AttributeWindowPro
                     Name
                   </Label>
                   <Input
+                    ref={nameInputRef}
                     id="goal-name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
