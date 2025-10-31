@@ -57,9 +57,11 @@ export function calculateTreeLayout(
   const root = hierarchy(hierarchyData);
 
   // Configure D3 tree layout with Reingold-Tilford algorithm
-  // nodeSize sets the spacing between nodes: [horizontal, vertical]
-  const horizontalSpacing = 120; // Space between siblings
-  const verticalSpacing = 140;   // Space between levels
+  // nodeSize sets the spacing between node centers: [horizontal, vertical]
+  // Root nodes: ~161px wide, ~118px tall (including label)
+  // We need extra spacing to prevent overlaps, especially at root level
+  const horizontalSpacing = 200; // Accommodates largest node (root ~161px) + clearance
+  const verticalSpacing = 180;   // Accommodates node height + label + clearance
   
   const treeLayout = tree()
     .nodeSize([horizontalSpacing, verticalSpacing])
