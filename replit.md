@@ -12,6 +12,9 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### October 31, 2025
+- **Tree layout refactored to D3's Reingold-Tilford algorithm**: Replaced naive recursive positioning with industry-standard D3 tree layout using contour-based collision avoidance. Configured with `.nodeSize([120, 140])` for consistent spacing and `.separation()` function that gives siblings 1x spacing and cousins 1.5x spacing for better visual clustering. Algorithm automatically centers trees on canvas and guarantees no subtree overlaps. Manual position persistence preserved - user-dragged nodes retain their positions while new nodes use collision-free calculated positions. Always uses D3's calculated depth for consistency.
+
 ### October 29, 2025
 - **Major layout system overhaul**: Implemented hierarchical shapes (root=square, level1=circle, level2=diamond, level3=triangle, level4+=hexagon) using custom SVG rendering, dramatic size reduction by depth (75%, 60%, 48%, 40%), tighter clustering in both tree (120px spacing) and spider (120px radius) layouts, and improved sibling grouping via adaptive separation.
 - **Parent-drag-children feature**: Added dragLocked toggle (Link/Unlink icon) on nodes with children. When locked (default), dragging a parent moves entire subtree together. Manual positions persist per layout mode. Uses onNodeDrag to calculate delta and recursively update descendant positions.

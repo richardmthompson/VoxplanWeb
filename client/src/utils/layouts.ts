@@ -43,54 +43,78 @@ function calculateDepth(goalId: number, goals: Map<number, Goal>): number {
 }
 
 /**
- * Traditional hierarchical top-down tree layout
+ * Traditional hierarchical top-down tree layout using D3's Reingold-Tilford algorithm
  */
 export function calculateTreeLayout(
   goals: Map<number, Goal>,
   rootId: number
 ): LayoutResult {
-  const nodes: LayoutNode[] = [];
+  const hierarchyData = buildHierarchy(goals, rootId);
+  if (!hierarchyData) {
+    return { nodes: [] };
+  }
+
+  const root = hierarchy(hierarchyData);
+
+  // Configure D3 tree layout with Reingold-Tilford algorithm
+  // nodeSize sets the spacing between nodes: [horizontal, vertical]
+  const horizontalSpacing = 120; // Space between siblings
+  const verticalSpacing = 140;   // Space between levels
   
-  const positionTree = (nodeId: number, x: number, y: number): number => {
-    const goal = goals.get(nodeId);
-    if (!goal) return x;
+  const treeLayout = tree()
+    .nodeSize([horizontalSpacing, verticalSpacing])
+    .separation((a, b) => {
+      // Siblings get 1x spacing, cousins get 1.5x spacing
+      // This creates tighter clustering within sibling groups
+      return a.parent === b.parent ? 1 : 1.5;
+    });
 
-    const children = Array.from(goals.values())
-      .filter(g => g.parentId === nodeId)
-      .sort((a, b) => a.id - b.id);
+  // Apply the layout algorithm
+  treeLayout(root);
 
-    const depth = calculateDepth(nodeId, goals);
+  // Convert D3's coordinate system to our visual coordinates
+  // D3 outputs: x = horizontal breadth, y = vertical depth
+  // We want: x = horizontal position, y = vertical position
+  
+  // Find bounds to center the tree
+  let minX = Infinity;
+  let maxX = -Infinity;
+  
+  root.each((node: any) => {
+    if (node.x < minX) minX = node.x;
+    if (node.x > maxX) maxX = node.x;
+  });
 
-    // Use saved position for tree mode if it exists, otherwise use calculated position
-    const nodePosition = goal.manualPositions?.tree
-      ? goal.manualPositions.tree
-      : { x, y };
+  // Center the tree horizontally on the canvas
+  const treeWidth = maxX - minX;
+  const canvasCenterX = 600; // Center point for the canvas
+  const offsetX = canvasCenterX - (minX + treeWidth / 2);
+  const offsetY = 50; // Top margin
+
+  const nodes: LayoutNode[] = [];
+
+  root.each((node: any) => {
+    const goal = node.data.goal;
+    
+    // Use saved position for tree mode if it exists, otherwise use D3's calculated position
+    // Always use D3's depth to ensure consistency
+    let position;
+    if (goal.manualPositions?.tree) {
+      position = goal.manualPositions.tree;
+    } else {
+      position = {
+        x: node.x + offsetX,
+        y: node.y + offsetY
+      };
+    }
 
     nodes.push({
-      id: String(nodeId),
-      position: nodePosition,
-      depth,
+      id: node.data.id,
+      position,
+      depth: node.depth, // Always use D3's calculated depth, even with manual positions
     });
+  });
 
-    if (children.length === 0) return x;
-
-    // Adaptive spacing based on sibling count for better clustering
-    const baseSpacing = 120;
-    const childSpacing = children.length > 4 ? baseSpacing * 0.8 : baseSpacing;
-    const verticalSpacing = 140; // Tighter vertical spacing
-    const totalWidth = (children.length - 1) * childSpacing;
-    let childX = x - totalWidth / 2;
-
-    children.forEach((child) => {
-      childX = positionTree(child.id, childX, y + verticalSpacing);
-      childX += childSpacing;
-    });
-
-    return x;
-  };
-
-  positionTree(rootId, 400, 50);
-  
   return { nodes };
 }
 
