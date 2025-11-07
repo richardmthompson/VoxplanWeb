@@ -156,17 +156,12 @@ export function calculateSpiderLayout(
     if (goal.manualPositions?.spider) {
       position = goal.manualPositions.spider;
     } else {
-      if (node.depth === 0) {
-        // Root at center
-        position = { x: centerX, y: centerY };
-      } else {
-        // Position at center of allocated angular wedge
-        const angle = centerAngle;
-        position = {
-          x: centerX + radius * Math.cos(angle),
-          y: centerY + radius * Math.sin(angle)
-        };
-      }
+      // Position at center of allocated angular wedge
+      const angle = centerAngle;
+      position = {
+        x: centerX + radius * Math.cos(angle),
+        y: centerY + radius * Math.sin(angle)
+      };
     }
     
     nodes.push({
@@ -190,33 +185,38 @@ export function calculateSpiderLayout(
     }
   };
   
+  // Add root node first
+  const rootGoal = root.data.goal;
+  nodes.push({
+    id: root.data.id,
+    position: rootGoal.manualPositions?.spider || { x: centerX, y: centerY },
+    depth: 0,
+  });
+  
   // Handle special case: single linear chain
   // Spread nodes evenly around the circle for better appearance
   const isLinearTree = root.descendants().every((n: any) => {
     return n.children ? n.children.length <= 1 : true;
   });
   
-  if (isLinearTree) {
+  if (isLinearTree && root.children && root.children.length > 0) {
     // Special layout for linear trees: spread around full circle
-    const allNodes = root.descendants();
-    allNodes.forEach((node: any, index: number) => {
+    // Skip root (already added), process descendants
+    const descendants = root.descendants().slice(1); // Skip root
+    descendants.forEach((node: any, index: number) => {
       const goal = node.data.goal;
       let position: { x: number; y: number };
       
       if (goal.manualPositions?.spider) {
-        position = goal.manualPositions?.spider;
+        position = goal.manualPositions.spider;
       } else {
-        if (node.depth === 0) {
-          position = { x: centerX, y: centerY };
-        } else {
-          // Distribute evenly around circle, starting at top
-          const angle = (index / Math.max(allNodes.length - 1, 1)) * (2 * Math.PI) - Math.PI / 2;
-          const radius = node.depth * radiusIncrement;
-          position = {
-            x: centerX + radius * Math.cos(angle),
-            y: centerY + radius * Math.sin(angle)
-          };
-        }
+        // Distribute evenly around circle, starting at top
+        const angle = ((index + 1) / (descendants.length + 1)) * (2 * Math.PI) - Math.PI / 2;
+        const radius = node.depth * radiusIncrement;
+        position = {
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle)
+        };
       }
       
       nodes.push({
@@ -225,24 +225,14 @@ export function calculateSpiderLayout(
         depth: node.depth,
       });
     });
-  } else {
+  } else if (root.children && root.children.length > 0) {
     // For branching trees: use angular sectoring
     // Level 1 children get even distribution around full circle
-    if (root.children && root.children.length > 0) {
-      const level1AngleSpan = (2 * Math.PI) / root.children.length;
-      
-      root.children.forEach((child: any, index: number) => {
-        const childCenterAngle = level1AngleSpan * index;
-        layoutSubtree(child, childCenterAngle, level1AngleSpan, initialRadius);
-      });
-    }
+    const level1AngleSpan = (2 * Math.PI) / root.children.length;
     
-    // Add root node
-    const rootGoal = root.data.goal;
-    nodes.push({
-      id: root.data.id,
-      position: rootGoal.manualPositions?.spider || { x: centerX, y: centerY },
-      depth: 0,
+    root.children.forEach((child: any, index: number) => {
+      const childCenterAngle = level1AngleSpan * index;
+      layoutSubtree(child, childCenterAngle, level1AngleSpan, initialRadius);
     });
   }
 

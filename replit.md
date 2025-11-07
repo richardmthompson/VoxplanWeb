@@ -12,6 +12,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### November 7, 2025
+- **Three-layout system implemented**: Added vertical mind-map layout alongside existing tree and spider layouts, with layout toggle cycling through all three modes.
+- **Vertical layout (mind-map style)**: Root centered, level 1 children alternate left/right in vertical stacks, level 2+ stack below parent in same direction. Minimal horizontal spacing (180px) for compact display, 100px vertical spacing between stacked nodes.
+- **Spider layout refactored to angular sectoring**: Replaced D3 tree wrapper with proper industry-standard radial algorithm. Level 1 children evenly distributed around circle (2π / numChildren), level 2+ subdivide parent's angular wedge to prevent overlap. Initial radius 150px, 120px increment per level. Linear trees spread evenly for aesthetics.
+- **Layout-specific manual positions**: Each layout mode (tree/spider/vertical) maintains separate drag position storage, allowing users to customize arrangements per layout without losing positions when switching modes.
+
 ### October 31, 2025
 - **Tree layout refactored to D3's Reingold-Tilford algorithm**: Replaced naive recursive positioning with industry-standard D3 tree layout using contour-based collision avoidance. Configured with `.nodeSize([200, 180])` (accommodates largest node width ~161px with clearance) and `.separation()` function that gives siblings 1x spacing and cousins 1.5x spacing for better visual clustering. Algorithm automatically centers trees on canvas and guarantees no subtree overlaps. Manual position persistence preserved - user-dragged nodes retain their positions while new nodes use collision-free calculated positions. Always uses D3's calculated depth for consistency.
 

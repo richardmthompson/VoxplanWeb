@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -29,8 +29,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
+// Memoize nodeTypes to prevent React Flow warning
 const nodeTypes = {
-  goalNode: GoalNode,
+  goalNode: memo(GoalNode),
 };
 
 function TreeCanvasInner() {
