@@ -14,9 +14,9 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import GoalNode, { GoalNodeData } from './GoalNode';
-import { useTreeStore } from '@/stores/treeStore';
+import { useTreeStore, LayoutMode } from '@/stores/treeStore';
 import { Button } from '@/components/ui/button';
-import { Crosshair, Network, Radar } from 'lucide-react';
+import { Crosshair, Network, Radar, List } from 'lucide-react';
 import { calculateLayout } from '@/utils/layouts';
 import {
   AlertDialog,
@@ -227,7 +227,15 @@ function TreeCanvasInner() {
   };
 
   const handleToggleLayout = () => {
-    const newMode = layoutMode === 'tree' ? 'spider' : 'tree';
+    // Cycle through: tree -> spider -> vertical -> tree
+    let newMode: LayoutMode;
+    if (layoutMode === 'tree') {
+      newMode = 'spider';
+    } else if (layoutMode === 'spider') {
+      newMode = 'vertical';
+    } else {
+      newMode = 'tree';
+    }
     setPendingLayoutMode(newMode);
     setShowLayoutDialog(true);
   };
@@ -272,13 +280,15 @@ function TreeCanvasInner() {
             size="icon"
             variant="secondary"
             onClick={handleToggleLayout}
-            title={`Switch to ${layoutMode === 'tree' ? 'spider' : 'tree'} layout`}
+            title={`Current: ${layoutMode}. Click to cycle layouts.`}
             data-testid="button-toggle-layout"
           >
             {layoutMode === 'tree' ? (
+              <Network className="w-4 h-4" />
+            ) : layoutMode === 'spider' ? (
               <Radar className="w-4 h-4" />
             ) : (
-              <Network className="w-4 h-4" />
+              <List className="w-4 h-4" />
             )}
           </Button>
           <Button

@@ -201,6 +201,103 @@ export function calculateSpiderLayout(
 }
 
 /**
+ * Vertical mind-map layout with alternating left/right stacks
+ */
+export function calculateVerticalLayout(
+  goals: Map<number, Goal>,
+  rootId: number
+): LayoutResult {
+  const nodes: LayoutNode[] = [];
+  const hierarchyData = buildHierarchy(goals, rootId);
+  if (!hierarchyData) {
+    return { nodes: [] };
+  }
+
+  const root = hierarchy(hierarchyData);
+  
+  // Root at center
+  const centerX = 600;
+  const centerY = 300;
+  
+  // Minimal horizontal spacing - just enough for clean connection lines
+  const horizontalSpacing = 180; // Distance from root to first level stacks
+  const verticalSpacing = 100;   // Vertical spacing between stacked nodes
+  
+  // Track vertical positions for each stack (left and right)
+  const stackPositions: Map<string, number> = new Map();
+  
+  const layoutNode = (node: any, parentX: number, parentY: number, stackDirection: 'left' | 'right' | 'center', stackKey: string) => {
+    const goal = node.data.goal;
+    let position: { x: number; y: number };
+    
+    // Use saved position if it exists
+    if (goal.manualPositions?.vertical) {
+      position = goal.manualPositions.vertical;
+    } else {
+      if (node.depth === 0) {
+        // Root at center
+        position = { x: centerX, y: centerY };
+      } else if (node.depth === 1) {
+        // Level 1: Alternate left/right stacks
+        const childIndex = node.parent.children.indexOf(node);
+        const isRight = childIndex % 2 === 0;
+        const direction = isRight ? 'right' : 'left';
+        const xOffset = isRight ? horizontalSpacing : -horizontalSpacing;
+        
+        // Start first child of each stack at parent's Y position
+        const stackKey = direction;
+        const currentStackY = stackPositions.get(stackKey) ?? centerY;
+        
+        position = {
+          x: centerX + xOffset,
+          y: currentStackY
+        };
+        
+        // Update stack position for next sibling
+        stackPositions.set(stackKey, currentStackY + verticalSpacing);
+        
+        // Process children with same direction
+        if (node.children) {
+          node.children.forEach((child: any) => {
+            layoutNode(child, position.x, position.y, direction, stackKey);
+          });
+        }
+      } else {
+        // Level 2+: Stack vertically below parent in same horizontal direction
+        const parentStackKey = stackKey + '-' + node.parent.data.id;
+        const currentStackY = stackPositions.get(parentStackKey) ?? parentY;
+        
+        position = {
+          x: parentX,
+          y: currentStackY
+        };
+        
+        // Update stack position for next sibling
+        stackPositions.set(parentStackKey, currentStackY + verticalSpacing);
+        
+        // Process children with same direction
+        if (node.children) {
+          node.children.forEach((child: any) => {
+            layoutNode(child, position.x, position.y, stackDirection, parentStackKey);
+          });
+        }
+      }
+    }
+    
+    nodes.push({
+      id: node.data.id,
+      position,
+      depth: node.depth,
+    });
+  };
+  
+  // Start layout from root
+  layoutNode(root, centerX, centerY, 'center', 'root');
+  
+  return { nodes };
+}
+
+/**
  * Main layout calculator that delegates to the appropriate algorithm
  */
 export function calculateLayout(
@@ -215,6 +312,8 @@ export function calculateLayout(
   switch (layoutMode) {
     case 'spider':
       return calculateSpiderLayout(goals, rootId);
+    case 'vertical':
+      return calculateVerticalLayout(goals, rootId);
     case 'tree':
     default:
       return calculateTreeLayout(goals, rootId);

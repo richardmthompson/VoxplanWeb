@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type LayoutMode = 'tree' | 'spider';
+export type LayoutMode = 'tree' | 'spider' | 'vertical';
 
 export interface Goal {
   id: number;
@@ -12,6 +12,7 @@ export interface Goal {
   manualPositions?: {
     tree?: { x: number; y: number };
     spider?: { x: number; y: number };
+    vertical?: { x: number; y: number };
   };
   dragLocked?: boolean; // When true, dragging this node also moves its children
 }
