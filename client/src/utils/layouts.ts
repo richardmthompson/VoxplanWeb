@@ -121,7 +121,8 @@ export function calculateTreeLayout(
 }
 
 /**
- * Radial "spider" layout with children radiating outward
+ * Radial "spider" layout with explicit angular sectoring
+ * Implements industry-standard algorithm from mind-mapping research
  */
 export function calculateSpiderLayout(
   goals: Map<number, Goal>,
@@ -132,70 +133,118 @@ export function calculateSpiderLayout(
     return { nodes: [] };
   }
 
+  const root = hierarchy(hierarchyData);
+  const nodes: LayoutNode[] = [];
+
   // Center point for the spider layout
   const centerX = 600;
   const centerY = 400;
-  const radiusPerLevel = 120; // Tighter radial spacing for better clustering
-
-  const root = hierarchy(hierarchyData);
+  const initialRadius = 150;     // Distance from center to first level
+  const radiusIncrement = 120;    // Distance added per level
   
-  // Calculate max depth to properly size the layout
-  const maxDepth = root.height;
-
-  // Create d3 tree layout with proper radius scaling
-  const treeLayout = tree()
-    .size([2 * Math.PI, maxDepth > 0 ? radiusPerLevel * maxDepth : radiusPerLevel])
-    .separation((a, b) => {
-      // Improved clustering: siblings closer, non-siblings further apart
-      return a.parent === b.parent ? 0.8 : 2.5;
-    });
-
-  treeLayout(root);
-
-  const nodes: LayoutNode[] = [];
-
-  // For linear trees (single chain), spread nodes around the circle
-  // For branching trees, use d3's calculated angles
-  const isLinearTree = root.descendants().every((n: any) => {
-    return n.children ? n.children.length <= 1 : true;
-  });
-
-  let linearNodeIndex = 0;
-  const totalLinearNodes = root.descendants().length;
-
-  root.each((node: any) => {
+  // Recursive layout function with explicit angular sectoring
+  const layoutSubtree = (
+    node: any,
+    centerAngle: number,
+    angularSpan: number,
+    radius: number
+  ) => {
     const goal = node.data.goal;
+    let position: { x: number; y: number };
     
-    // Use saved position for spider mode if it exists, otherwise calculate radial position
-    let position;
+    // Use saved position if it exists
     if (goal.manualPositions?.spider) {
       position = goal.manualPositions.spider;
     } else {
-      let angle;
-      
-      if (isLinearTree) {
-        // For linear trees, evenly distribute nodes around the circle
-        angle = (linearNodeIndex / Math.max(totalLinearNodes - 1, 1)) * (2 * Math.PI) - Math.PI / 2;
-        linearNodeIndex++;
+      if (node.depth === 0) {
+        // Root at center
+        position = { x: centerX, y: centerY };
       } else {
-        // For branching trees, use d3's calculated angle
-        angle = node.x - Math.PI / 2; // Offset to start at top
+        // Position at center of allocated angular wedge
+        const angle = centerAngle;
+        position = {
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle)
+        };
       }
-      
-      const radius = node.depth * radiusPerLevel;
-      
-      position = {
-        x: centerX + radius * Math.cos(angle),
-        y: centerY + radius * Math.sin(angle)
-      };
     }
-
+    
     nodes.push({
       id: node.data.id,
       position,
       depth: node.depth,
     });
+    
+    // Layout children with subdivided wedges
+    if (node.children && node.children.length > 0) {
+      const childAngularSpan = angularSpan / node.children.length;
+      const childRadius = radius + radiusIncrement;
+      
+      node.children.forEach((child: any, index: number) => {
+        // Calculate center angle for this child's wedge
+        // Start from left edge of parent's wedge and move rightward
+        const childCenterAngle = centerAngle - (angularSpan / 2) + childAngularSpan * (index + 0.5);
+        
+        layoutSubtree(child, childCenterAngle, childAngularSpan, childRadius);
+      });
+    }
+  };
+  
+  // Handle special case: single linear chain
+  // Spread nodes evenly around the circle for better appearance
+  const isLinearTree = root.descendants().every((n: any) => {
+    return n.children ? n.children.length <= 1 : true;
   });
+  
+  if (isLinearTree) {
+    // Special layout for linear trees: spread around full circle
+    const allNodes = root.descendants();
+    allNodes.forEach((node: any, index: number) => {
+      const goal = node.data.goal;
+      let position: { x: number; y: number };
+      
+      if (goal.manualPositions?.spider) {
+        position = goal.manualPositions?.spider;
+      } else {
+        if (node.depth === 0) {
+          position = { x: centerX, y: centerY };
+        } else {
+          // Distribute evenly around circle, starting at top
+          const angle = (index / Math.max(allNodes.length - 1, 1)) * (2 * Math.PI) - Math.PI / 2;
+          const radius = node.depth * radiusIncrement;
+          position = {
+            x: centerX + radius * Math.cos(angle),
+            y: centerY + radius * Math.sin(angle)
+          };
+        }
+      }
+      
+      nodes.push({
+        id: node.data.id,
+        position,
+        depth: node.depth,
+      });
+    });
+  } else {
+    // For branching trees: use angular sectoring
+    // Level 1 children get even distribution around full circle
+    if (root.children && root.children.length > 0) {
+      const level1AngleSpan = (2 * Math.PI) / root.children.length;
+      
+      root.children.forEach((child: any, index: number) => {
+        const childCenterAngle = level1AngleSpan * index;
+        layoutSubtree(child, childCenterAngle, level1AngleSpan, initialRadius);
+      });
+    }
+    
+    // Add root node
+    const rootGoal = root.data.goal;
+    nodes.push({
+      id: root.data.id,
+      position: rootGoal.manualPositions?.spider || { x: centerX, y: centerY },
+      depth: 0,
+    });
+  }
 
   return { nodes };
 }

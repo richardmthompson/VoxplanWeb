@@ -45,7 +45,7 @@ function TreeCanvasInner() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showLayoutDialog, setShowLayoutDialog] = useState(false);
-  const [pendingLayoutMode, setPendingLayoutMode] = useState<'tree' | 'spider' | null>(null);
+  const [pendingLayoutMode, setPendingLayoutMode] = useState<LayoutMode | null>(null);
 
   const getChildren = useTreeStore((state) => state.getChildren);
 
