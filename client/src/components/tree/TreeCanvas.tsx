@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, memo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, memo } from 'react';
 import ReactFlow, {
   Node,
   Edge,
@@ -9,86 +9,73 @@ import ReactFlow, {
   BackgroundVariant,
   useNodesState,
   useEdgesState,
-  NodeChange,
-  applyNodeChanges,
+  useNodesInitialized,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import GoalNode, { GoalNodeData } from './GoalNode';
-import { useTreeStore, LayoutMode } from '@/stores/treeStore';
+import { useTreeStore, Goal } from '@/stores/treeStore';
 import { Button } from '@/components/ui/button';
-import { Crosshair, Network, Radar, List } from 'lucide-react';
-import { calculateLayout } from '@/utils/layouts';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Crosshair } from 'lucide-react';
+import { getLayoutedElements } from '@/utils/layouts';
 
-// Memoize nodeTypes to prevent React Flow warning
 const nodeTypes = {
   goalNode: memo(GoalNode),
 };
 
+function getNodeState(goal: Goal, allGoals: Goal[]): 'root' | 'blocked' | 'active' | 'done' | 'delegated' {
+  if (goal.status === 'closed') return 'done';
+  if (goal.parentId === null) return 'root';
+  const children = allGoals.filter(g => g.parentId === goal.id);
+  if (children.length > 0) {
+    const allChildrenDone = children.every(c => c.status === 'closed');
+    return allChildrenDone ? 'active' : 'blocked';
+  }
+  if (goal.status === 'blocked') return 'blocked';
+  if (goal.status === 'in_progress') return 'active';
+  return 'active';
+}
+
 function TreeCanvasInner() {
-  const { fitView, setCenter, zoomIn, zoomOut } = useReactFlow();
+  const reactFlow = useReactFlow();
+  const { fitView, setCenter, zoomIn, zoomOut } = reactFlow;
   const goals = useTreeStore((state) => state.goals);
-  const updateGoal = useTreeStore((state) => state.updateGoal);
   const activeGoalId = useTreeStore((state) => state.activeGoalId);
-  const rootId = useTreeStore((state) => state.rootId);
-  const layoutMode = useTreeStore((state) => state.layoutMode);
-  const setLayoutMode = useTreeStore((state) => state.setLayoutMode);
-  
+
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [showLayoutDialog, setShowLayoutDialog] = useState(false);
-  const [pendingLayoutMode, setPendingLayoutMode] = useState<LayoutMode | null>(null);
+  const nodesInitialized = useNodesInitialized();
+  const layoutDone = useRef(false);
+  const prevActiveId = useRef<number | null>(null);
 
-  const getChildren = useTreeStore((state) => state.getChildren);
+  const allGoals = useMemo(() => Array.from(goals.values()), [goals]);
 
+  // Build nodes/edges only when goals change (NOT activeGoalId)
   const buildNodesAndEdges = useCallback(() => {
-    const nodes: Node<GoalNodeData>[] = [];
-    const edges: Edge[] = [];
+    const rfNodes: Node<GoalNodeData>[] = [];
+    const rfEdges: Edge[] = [];
 
-    if (goals.size === 0 || rootId === null) {
-      return { nodes, edges };
-    }
+    if (goals.size === 0) return { nodes: rfNodes, edges: rfEdges };
 
-    // Calculate layout using the appropriate algorithm
-    const layout = calculateLayout(goals, rootId, layoutMode);
-
-    // Build nodes from layout
-    layout.nodes.forEach((layoutNode) => {
-      const goalId = parseInt(layoutNode.id);
-      const goal = goals.get(goalId);
-      if (!goal) return;
-
-      const children = getChildren(goalId);
-
-      nodes.push({
-        id: layoutNode.id,
+    allGoals.forEach((goal) => {
+      const nodeState = getNodeState(goal, allGoals);
+      rfNodes.push({
+        id: String(goal.id),
         type: 'goalNode',
-        position: layoutNode.position,
+        position: { x: 0, y: 0 },
         data: {
-          id: goalId,
+          id: goal.id,
           name: goal.name,
-          totalheight: goal.totalheight,
-          isActive: goalId === activeGoalId,
-          depth: layoutNode.depth,
-          hasChildren: children.length > 0,
-          dragLocked: goal.dragLocked ?? true,
+          details: goal.details,
+          isActive: goal.id === activeGoalId,
+          dept: goal.dept,
+          status: goal.status,
+          deadline: goal.deadline,
+          nodeState,
         },
       });
-    });
 
-    // Build edges
-    goals.forEach((goal) => {
       if (goal.parentId !== null) {
-        edges.push({
+        rfEdges.push({
           id: `e-${goal.parentId}-${goal.id}`,
           source: String(goal.parentId),
           target: String(goal.id),
@@ -98,35 +85,63 @@ function TreeCanvasInner() {
       }
     });
 
-    return { nodes, edges };
-  }, [goals, activeGoalId, rootId, layoutMode, getChildren]);
+    return { nodes: rfNodes, edges: rfEdges };
+  }, [goals, allGoals, activeGoalId]);
 
+  // Rebuild nodes when goals change
   useEffect(() => {
-    const { nodes: newNodes, edges: newEdges } = buildNodesAndEdges();
-    setNodes(newNodes);
-    setEdges(newEdges);
-  }, [buildNodesAndEdges, setNodes, setEdges]);
+    layoutDone.current = false;
+    const { nodes: n, edges: e } = buildNodesAndEdges();
+    setNodes(n);
+    setEdges(e);
+  }, [goals, allGoals]);
 
+  // Update only isActive flag when activeGoalId changes (no position reset)
   useEffect(() => {
-    if (nodes.length > 0 && layoutMode === 'tree') {
-      // Only auto-fit for tree mode; spider mode has fixed spacing
-      setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 100);
-    }
-  }, [nodes.length, fitView, layoutMode]);
+    if (!layoutDone.current) return;
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        data: { ...n.data, isActive: n.id === String(activeGoalId) },
+      })),
+    );
+  }, [activeGoalId, setNodes]);
+
+  // Apply Dagre layout after nodes are measured
+  useEffect(() => {
+    if (!nodesInitialized || nodes.length === 0) return;
+    if (layoutDone.current) return;
+    const { nodes: layouted } = getLayoutedElements(nodes, edges, 'LR');
+    setNodes(layouted);
+    layoutDone.current = true;
+    setTimeout(() => fitView({ padding: 0.2, duration: 300 }), 50);
+  }, [nodesInitialized]);
+
+  // Follow mode: pan to active node when it changes
+  useEffect(() => {
+    if (activeGoalId === null || !layoutDone.current) return;
+    if (prevActiveId.current === activeGoalId) return;
+    prevActiveId.current = activeGoalId;
+
+    const timer = setTimeout(() => {
+      const currentNodes = reactFlow.getNodes();
+      const activeNode = currentNodes.find(n => n.id === String(activeGoalId));
+      if (activeNode && (activeNode.position.x !== 0 || activeNode.position.y !== 0)) {
+        setCenter(
+          activeNode.position.x + 140,
+          activeNode.position.y + 60,
+          { zoom: 1, duration: 300 },
+        );
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [activeGoalId, reactFlow, setCenter]);
 
   // Keyboard zoom controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't process shortcuts if an input, textarea, or contenteditable element is focused
       const target = e.target as HTMLElement;
-      
-      if (
-        target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.isContentEditable
-      ) {
-        return;
-      }
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
 
       if (e.key === '+' || e.key === '=') {
         e.preventDefault();
@@ -136,124 +151,17 @@ function TreeCanvasInner() {
         zoomOut();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [zoomIn, zoomOut]);
-
-  // Helper to recursively get all descendant IDs
-  const getAllDescendants = useCallback((goalId: number): number[] => {
-    const children = getChildren(goalId);
-    const descendants: number[] = [];
-    
-    children.forEach(child => {
-      descendants.push(child.id);
-      descendants.push(...getAllDescendants(child.id));
-    });
-    
-    return descendants;
-  }, [getChildren]);
-
-  const handleNodeDrag = useCallback((event: any, node: Node) => {
-    const goalId = parseInt(node.id);
-    const goal = goals.get(goalId);
-    
-    if (!goal || !goal.dragLocked) return;
-    
-    // Calculate the delta from the node's last position
-    const currentNodes = nodes;
-    const previousNode = currentNodes.find(n => n.id === node.id);
-    if (!previousNode) return;
-    
-    const deltaX = node.position.x - previousNode.position.x;
-    const deltaY = node.position.y - previousNode.position.y;
-    
-    // If there's no movement, skip
-    if (deltaX === 0 && deltaY === 0) return;
-    
-    // Get all descendants
-    const descendantIds = getAllDescendants(goalId);
-    
-    // Update positions of all descendants
-    setNodes(currentNodes.map(n => {
-      if (descendantIds.includes(parseInt(n.id))) {
-        return {
-          ...n,
-          position: {
-            x: n.position.x + deltaX,
-            y: n.position.y + deltaY
-          }
-        };
-      }
-      return n;
-    }));
-  }, [goals, nodes, getAllDescendants, setNodes]);
-
-  const handleNodeDragStop = useCallback((event: any, node: Node) => {
-    const goalId = parseInt(node.id);
-    const goal = goals.get(goalId);
-    if (goal) {
-      // Save manual position for the current layout mode
-      const manualPositions = {
-        ...goal.manualPositions,
-        [layoutMode]: node.position
-      };
-      updateGoal(goalId, { position: node.position, manualPositions });
-      
-      // If drag locked, also save positions of all children
-      if (goal.dragLocked) {
-        const descendantIds = getAllDescendants(goalId);
-        descendantIds.forEach(descId => {
-          const descendantNode = nodes.find(n => parseInt(n.id) === descId);
-          const descendant = goals.get(descId);
-          if (descendantNode && descendant) {
-            const descendantManualPositions = {
-              ...descendant.manualPositions,
-              [layoutMode]: descendantNode.position
-            };
-            updateGoal(descId, { position: descendantNode.position, manualPositions: descendantManualPositions });
-          }
-        });
-      }
-    }
-  }, [updateGoal, goals, layoutMode, getAllDescendants, nodes]);
 
   const handleCenterActive = () => {
     if (activeGoalId !== null) {
       const activeNode = nodes.find(n => n.id === String(activeGoalId));
       if (activeNode) {
-        setCenter(activeNode.position.x, activeNode.position.y, { zoom: 1, duration: 500 });
+        setCenter(activeNode.position.x + 140, activeNode.position.y + 60, { zoom: 1, duration: 500 });
       }
     }
-  };
-
-  const handleToggleLayout = () => {
-    // Cycle through: tree -> spider -> vertical -> tree
-    let newMode: LayoutMode;
-    if (layoutMode === 'tree') {
-      newMode = 'spider';
-    } else if (layoutMode === 'spider') {
-      newMode = 'vertical';
-    } else {
-      newMode = 'tree';
-    }
-    setPendingLayoutMode(newMode);
-    setShowLayoutDialog(true);
-  };
-
-  const handleConfirmLayoutChange = () => {
-    if (pendingLayoutMode) {
-      // Just switch the mode - layout calculators will use mode-specific manual positions
-      // If a node doesn't have a manual position for the new mode, it will be recalculated
-      setLayoutMode(pendingLayoutMode);
-      setShowLayoutDialog(false);
-      setPendingLayoutMode(null);
-    }
-  };
-
-  const handleCancelLayoutChange = () => {
-    setShowLayoutDialog(false);
-    setPendingLayoutMode(null);
   };
 
   return (
@@ -263,8 +171,6 @@ function TreeCanvasInner() {
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
-        onNodeDrag={handleNodeDrag}
-        onNodeDragStop={handleNodeDragStop}
         nodeTypes={nodeTypes}
         fitView
         minZoom={0.1}
@@ -272,26 +178,11 @@ function TreeCanvasInner() {
         defaultEdgeOptions={{ type: 'smoothstep' }}
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-        <Controls 
+        <Controls
           className="bg-card border border-card-border rounded-lg shadow-sm"
           showInteractive={false}
         />
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
-          <Button
-            size="icon"
-            variant="secondary"
-            onClick={handleToggleLayout}
-            title={`Current: ${layoutMode}. Click to cycle layouts.`}
-            data-testid="button-toggle-layout"
-          >
-            {layoutMode === 'tree' ? (
-              <Network className="w-4 h-4" />
-            ) : layoutMode === 'spider' ? (
-              <Radar className="w-4 h-4" />
-            ) : (
-              <List className="w-4 h-4" />
-            )}
-          </Button>
           <Button
             size="icon"
             variant="secondary"
@@ -304,26 +195,6 @@ function TreeCanvasInner() {
           </Button>
         </div>
       </ReactFlow>
-
-      {/* Layout change confirmation dialog */}
-      <AlertDialog open={showLayoutDialog} onOpenChange={setShowLayoutDialog}>
-        <AlertDialogContent data-testid="dialog-layout-confirm">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Switch Layout Mode?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Switching to {pendingLayoutMode === 'tree' ? 'tree' : 'spider'} layout. Manual positions are preserved per layout, so you can switch back and forth without losing your custom arrangements.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelLayoutChange} data-testid="button-cancel-layout">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmLayoutChange} data-testid="button-confirm-layout">
-              Switch Layout
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

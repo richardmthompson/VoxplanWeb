@@ -83,7 +83,7 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "var(--font-sans)"],
+        sans: ["Outfit", "var(--font-sans)"],
         serif: ["var(--font-serif)"],
         mono: ["JetBrains Mono", "var(--font-mono)"],
       },

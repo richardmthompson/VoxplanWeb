@@ -6,6 +6,7 @@ import TreeCanvas from '@/components/tree/TreeCanvas';
 import CommandWindow from '@/components/windows/CommandWindow';
 import AttributeWindow from '@/components/windows/AttributeWindow';
 import HelpDialog from '@/components/dialogs/HelpDialog';
+import { getSeedGoals } from '@/data/seedData';
 
 export default function Home() {
   const [showHelp, setShowHelp] = useState(false);
@@ -22,51 +23,19 @@ export default function Home() {
   const deleteGoal = useTreeStore((state) => state.deleteGoal);
   const setActiveGoal = useTreeStore((state) => state.setActiveGoal);
 
-  const navigateUp = () => {
-    if (activeGoalId === null) return;
-    const activeGoal = goals.get(activeGoalId);
-    if (activeGoal?.parentId !== null && activeGoal?.parentId !== undefined) {
-      setActiveGoal(activeGoal.parentId);
-    }
-  };
+  const navigateUp = useTreeStore((state) => state.navigateUp);
+  const navigateDown = useTreeStore((state) => state.navigateDown);
+  const navigateLeft = useTreeStore((state) => state.navigateLeft);
+  const navigateRight = useTreeStore((state) => state.navigateRight);
 
-  const navigateDown = () => {
-    if (activeGoalId === null) return;
-    const children = Array.from(goals.values()).filter(g => g.parentId === activeGoalId);
-    if (children.length > 0) {
-      setActiveGoal(children[0].id);
-    }
-  };
+  const loadGoals = useTreeStore((state) => state.loadGoals);
 
-  const navigateLeft = () => {
-    if (activeGoalId === null) return;
-    const activeGoal = goals.get(activeGoalId);
-    if (activeGoal?.parentId === null || activeGoal?.parentId === undefined) return;
-    
-    const siblings = Array.from(goals.values())
-      .filter(g => g.parentId === activeGoal.parentId)
-      .sort((a, b) => a.id - b.id);
-    
-    const currentIndex = siblings.findIndex(g => g.id === activeGoalId);
-    if (currentIndex > 0) {
-      setActiveGoal(siblings[currentIndex - 1].id);
+  // Seed store with beads data on first mount
+  useEffect(() => {
+    if (goals.size === 0) {
+      loadGoals(getSeedGoals());
     }
-  };
-
-  const navigateRight = () => {
-    if (activeGoalId === null) return;
-    const activeGoal = goals.get(activeGoalId);
-    if (activeGoal?.parentId === null || activeGoal?.parentId === undefined) return;
-    
-    const siblings = Array.from(goals.values())
-      .filter(g => g.parentId === activeGoal.parentId)
-      .sort((a, b) => a.id - b.id);
-    
-    const currentIndex = siblings.findIndex(g => g.id === activeGoalId);
-    if (currentIndex < siblings.length - 1) {
-      setActiveGoal(siblings[currentIndex + 1].id);
-    }
-  };
+  }, []);
 
   // Auto-focus main container on mount to ensure keyboard shortcuts work
   useEffect(() => {
